@@ -88,7 +88,7 @@ def grab_json(url, max_age):
 	f.close()
 	return doc
 
-def download_rtmp(filename, vbase, vpath):
+def download_rtmp(filename, vbase, vpath, hash_url=None):
 	if vpath.endswith(".flv"):
 		vpath = vpath[:-4]
 	cmd = [
@@ -97,6 +97,8 @@ def download_rtmp(filename, vbase, vpath):
 		"-r", vbase,
 		"-y", vpath,
 	]
+	if hash_url is not None:
+		cmd += ["--swfVfy", hash_url]
 	try:
 		p = subprocess.Popen(cmd)
 		ret = p.wait()
