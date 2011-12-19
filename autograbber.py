@@ -36,11 +36,7 @@ def match(download_list, node, pattern):
 
 
 def main():
-	print "Loading episode data...",
-	sys.stdout.flush()
 	node = load_root_node()
-	print "done"
-
 	download_list = DownloadList("downloaded_auto.txt")
 
 	for search in sys.argv[1:]:

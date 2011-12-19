@@ -6,8 +6,8 @@ from common import grab_xml as _grab_xml, download_rtmp, download_urllib, Node
 
 BASE_URL = "http://player.sbs.com.au"
 
-def grab_xml(path):
-	return _grab_xml(BASE_URL + path)
+def grab_xml(path, max_age):
+	return _grab_xml(BASE_URL + path, max_age)
 
 class SbsNode(Node):
 	def __init__(self, title, parent, video_desc_url):
@@ -16,7 +16,7 @@ class SbsNode(Node):
 		self.can_download = True
 
 	def download(self):
-		video = grab_xml(self.video_desc_url)
+		video = grab_xml(self.video_desc_url, 0)
 		vbase = video.xpath("//meta/@base")[0]
 		bestrate = 0
 		bestvpath = None
@@ -33,10 +33,10 @@ class SbsNode(Node):
 
 
 def fill_nodes(root_node):
-	settings = grab_xml("/playerassets/programs/config/standalone_settings.xml")
+	settings = grab_xml("/playerassets/programs/config/standalone_settings.xml", 24*3600)
 	menu_url = settings.xpath("/settings/setting[@name='menuURL']/@value")[0]
 
-	root_menu = grab_xml(menu_url)
+	root_menu = grab_xml(menu_url, 3600)
 	seen_category_titles = set()
 	for menu in root_menu.xpath("//menu"):
 		try:
@@ -52,7 +52,7 @@ def fill_nodes(root_node):
 					i += 1
 			seen_category_titles.add(category_title)
 			category_node = Node(category_title, root_node)
-			playlist = grab_xml(playlist_url)
+			playlist = grab_xml(playlist_url, 3600)
 			for video_desc in playlist.xpath("//video"):
 				video_desc_url = video_desc.xpath("@src")[0]
 				video_title = video_desc.xpath("title/text()")[0].strip()

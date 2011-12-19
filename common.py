@@ -2,7 +2,10 @@
 
 from lxml import etree
 import json
-import md5
+try:
+	import hashlib
+except ImportError:
+	import md5 as hashlib
 import os
 import shutil
 import signal
@@ -34,27 +37,35 @@ class Node(object):
 def load_root_node():
 	root_node = Node("Root")
 
+	print "Loading iView episode data...",
+	sys.stdout.flush()
 	import iview
 	iview_node = Node("ABC iView", root_node)
 	iview.fill_nodes(iview_node)
+	print "done"
 
+	print "Loading SBS episode data...",
+	sys.stdout.flush()
 	import sbs
 	sbs_node = Node("SBS", root_node)
 	sbs.fill_nodes(sbs_node)
+	print "done"
 
 	return root_node
 
 
-def urlopen(url):
-	try:
-		os.mkdir(CACHE_DIR)
-	except OSError:
-		pass
+def urlopen(url, max_age):
+	if not os.path.isdir(CACHE_DIR):
+		os.makedirs(CACHE_DIR)
 
-	filename = md5.new(url).hexdigest()
+	if max_age <= 0:
+		return urllib.urlopen(url)
+
+	filename = hashlib.md5(url).hexdigest()
 	filename = os.path.join(CACHE_DIR, filename)
 	if os.path.exists(filename):
-		if int(time.time()) - os.path.getmtime(filename) < 24*3600:
+		file_age = int(time.time()) - os.path.getmtime(filename)
+		if file_age < max_age:
 			return open(filename)
 
 	src = urllib.urlopen(url)
@@ -65,14 +76,14 @@ def urlopen(url):
 
 	return open(filename)
 
-def grab_xml(url):
-	f = urlopen(url)
+def grab_xml(url, max_age):
+	f = urlopen(url, max_age)
 	doc = etree.parse(f)
 	f.close()
 	return doc
 
-def grab_json(url):
-	f = urlopen(url)
+def grab_json(url, max_age):
+	f = urlopen(url, max_age)
 	doc = json.load(f)
 	f.close()
 	return doc

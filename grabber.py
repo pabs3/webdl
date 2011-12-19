@@ -27,10 +27,8 @@ def choose(options, allow_multi):
 			pass
 
 def main():
-	print "Loading episode data...",
-	sys.stdout.flush()
 	node = load_root_node()
-	print "done"
+
 	while True:
 		options = {}
 		will_download = True
