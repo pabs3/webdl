@@ -105,6 +105,8 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 		if ret != 0:
 			print >>sys.stderr, "rtmpdump exited with error code:", ret
 			return False
+		else:
+			return True
 	except OSError, e:
 		print >>sys.stderr, "Failed to run rtmpdump!", e
 		return False
