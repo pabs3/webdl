@@ -22,7 +22,7 @@ def choose(options, allow_multi):
 			else:
 				if len(values) == 1:
 					return values[0]
-		except ValueError, IndexError:
+		except (ValueError, IndexError):
 			print >>sys.stderr, "Invalid input, please try again"
 			pass
 
