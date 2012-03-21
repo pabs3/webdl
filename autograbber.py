@@ -18,12 +18,13 @@ class DownloadList(object):
 	def mark_seen(self, node):
 		self.seen_list.add(node.title)
 		self.f.write(node.title + "\n")
+		self.f.flush()
 
 
 def match(download_list, node, pattern, count=0):
 	if node.can_download:
 		if not download_list.has_seen(node):
-			print "Downloading", node.title
+			print "Downloading:", node.title
 			if node.download():
 				download_list.mark_seen(node)
 			else:
