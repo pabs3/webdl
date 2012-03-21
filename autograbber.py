@@ -20,19 +20,23 @@ class DownloadList(object):
 		self.f.write(node.title + "\n")
 
 
-def match(download_list, node, pattern):
+def match(download_list, node, pattern, count=0):
 	if node.can_download:
 		if not download_list.has_seen(node):
+			print "Downloading", node.title
 			if node.download():
 				download_list.mark_seen(node)
 			else:
 				print >>sys.stderr, "Failed to download!", node.title
 		return
 
-	p = pattern[0]
+	if count >= len(pattern):
+		print "No match found for pattern:", "/".join(pattern)
+		return
+	p = pattern[count]
 	for child in node.children:
 		if fnmatch.fnmatch(child.title, p):
-			match(download_list, child, pattern[1:])
+			match(download_list, child, pattern, count+1)
 
 
 def main():
