@@ -25,7 +25,7 @@ class IviewNode(Node):
 		vpath, ext = self.vpath.rsplit(".", 1)
 		vpath = ext + ":" + vpath
 		filename = self.title + "." + ext
-		download_rtmp(filename, vbase, vpath, HASH_URL)
+		return download_rtmp(filename, vbase, vpath, HASH_URL)
 	
 
 def fill_nodes(root_node):
