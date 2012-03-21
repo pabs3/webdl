@@ -7,10 +7,12 @@ import sys
 
 class DownloadList(object):
 	def __init__(self, filename):
-		self.f = open(filename, "a+")
+		self.f = open(filename, "r")
 		self.seen_list = set()
 		for line in self.f:
 			self.seen_list.add(line.strip())
+		self.f.close()
+		self.f = open(filename, "a")
 	
 	def has_seen(self, node):
 		return node.title in self.seen_list
