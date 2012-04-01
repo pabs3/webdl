@@ -1,62 +1,95 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_xml as _grab_xml, download_rtmp, download_urllib, Node
+from common import grab_json, grab_xml, download_rtmp, Node
 
+import collections
 
-BASE_URL = "http://player.sbs.com.au"
+BASE = "http://www.sbs.com.au"
+MENU_URL = "/api/video_feed/f/dYtmxB/%s?startIndex=%d"
+VIDEO_URL = BASE + "/api/video_feed/f/dYtmxB/CxeOeDELXKEv/%s?form=json"
 
-def grab_xml(path, max_age):
-	return _grab_xml(BASE_URL + path, max_age)
+NS = {
+	"smil": "http://www.w3.org/2005/SMIL21/Language",
+}
+
+SECTIONS = [
+	"section-sbstv",
+	"section-programs",
+]
+
+CATEGORY_MAP = {
+	"Factual": "Documentary",
+}
+
 
 class SbsNode(Node):
-	def __init__(self, title, parent, video_desc_url):
+	def __init__(self, title, parent, video_id):
 		Node.__init__(self, title, parent)
-		self.video_desc_url = video_desc_url
+		self.title = title
+		self.video_id = video_id.split("/")[-1]
 		self.can_download = True
 
 	def download(self):
-		video = grab_xml(self.video_desc_url, 0)
-		vbase = video.xpath("//meta/@base")[0]
-		bestrate = 0
-		bestvpath = None
-		for vpath in video.xpath("//switch/video"):
-			rate = float(vpath.xpath("@system-bitrate")[0])
-			if rate > bestrate:
-				bestrate = rate
-				bestvpath = vpath.xpath("@src")[0]
-		filename = self.title + "." + bestvpath.rsplit(".", 1)[1]
-		if vbase.startswith("rtmp://"):
-			return download_rtmp(filename, vbase, bestvpath)
-		else:
-			return download_urllib(filename, vbase + bestvpath)
+		doc = grab_json(VIDEO_URL % self.video_id, 0)
+		best_url = None
+		best_bitrate = 0
+		for d in doc["media$content"]:
+			bitrate = d["plfile$bitrate"]
+			if bitrate > best_bitrate or best_url is None:
+				best_bitrate = bitrate
+				best_url = d["plfile$url"]
 
+		doc = grab_xml(best_url, 3600)
+		vbase = doc.xpath("//smil:meta/@base", namespaces=NS)[0]
+		vpath = doc.xpath("//smil:video/@src", namespaces=NS)[0]
+		ext = vpath.rsplit(".", 1)[1]
+		filename = self.title + "." + ext
+
+		return download_rtmp(filename, vbase, vpath)
+
+def fill_entry(get_catnode, entry):
+	title = entry["title"]
+	if title.find("sneak peek") >= 0:
+		print entry
+	video_id = entry["id"]
+	info = collections.defaultdict(list)
+	for d in entry["media$categories"]:
+		if not d.has_key("media$scheme"):
+			continue
+		info[d["media$scheme"]].append(d["media$name"])
+
+	if "Section/Promos" in info.get("Section", []):
+		# ignore promos
+		return
+
+	for category in info.get("Genre", ["$UnknownCategory$"]):
+		category = CATEGORY_MAP.get(category, category)
+		parent_node = get_catnode(category)
+		SbsNode(title, parent_node, video_id)
+
+
+def fill_section(get_catnode, section):
+	index = 1
+	while True:
+		doc = grab_json(BASE + MENU_URL % (section, index), 3600)
+		if len(doc.get("entries", [])) == 0:
+			break
+		for entry in doc["entries"]:
+			fill_entry(get_catnode, entry)
+		index += doc["itemsPerPage"]
 
 def fill_nodes(root_node):
-	settings = grab_xml("/playerassets/programs/config/standalone_settings.xml", 24*3600)
-	menu_url = settings.xpath("/settings/setting[@name='menuURL']/@value")[0]
-
-	root_menu = grab_xml(menu_url, 3600)
-	seen_category_titles = set()
-	for menu in root_menu.xpath("//menu"):
+	catnodes = {}
+	def get_catnode(name):
 		try:
-			category_title = menu.xpath("title/text()")[0]
-			playlist_url = menu.xpath("playlist/@xmlSrc")[0]
-			if category_title in seen_category_titles:
-				# append a number to the name
-				i = 2
-				while True:
-					if (category_title+str(i)) not in seen_category_titles:
-						category_title += str(i)
-						break
-					i += 1
-			seen_category_titles.add(category_title)
-			category_node = Node(category_title, root_node)
-			playlist = grab_xml(playlist_url, 3600)
-			for video_desc in playlist.xpath("//video"):
-				video_desc_url = video_desc.xpath("@src")[0]
-				video_title = video_desc.xpath("title/text()")[0].strip()
-				SbsNode(video_title, category_node, video_desc_url)
-		except IndexError:
-			continue
-	
+			return catnodes[name]
+		except KeyError:
+			n = Node(name, root_node)
+			catnodes[name] = n
+			return n
+
+	for section in SECTIONS:
+		fill_section(get_catnode, section)
+
+
