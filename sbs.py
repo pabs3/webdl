@@ -50,8 +50,6 @@ class SbsNode(Node):
 
 def fill_entry(get_catnode, entry):
 	title = entry["title"]
-	if title.find("sneak peek") >= 0:
-		print entry
 	video_id = entry["id"]
 	info = collections.defaultdict(list)
 	for d in entry["media$categories"]:
