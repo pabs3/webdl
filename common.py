@@ -70,7 +70,14 @@ def urlopen(url, max_age):
 
 	src = urllib.urlopen(url)
 	dst = open(filename, "w")
-	shutil.copyfileobj(src, dst)
+	try:
+		shutil.copyfileobj(src, dst)
+	except Exception, e:
+		try:
+			os.unlink(filename)
+		except OSError:
+			pass
+		raise e
 	src.close()
 	dst.close()
 
