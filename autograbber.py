@@ -7,11 +7,14 @@ import sys
 
 class DownloadList(object):
 	def __init__(self, filename):
-		self.f = open(filename, "r")
 		self.seen_list = set()
-		for line in self.f:
-			self.seen_list.add(line.strip())
-		self.f.close()
+		try:
+			self.f = open(filename, "r")
+			for line in self.f:
+				self.seen_list.add(line.strip())
+			self.f.close()
+		except Exception, e:
+			print >>sys.stderr, "Could not open:", filename, e
 		self.f = open(filename, "a")
 	
 	def has_seen(self, node):
