@@ -53,6 +53,12 @@ def load_root_node():
 
 	return root_node
 
+valid_chars = frozenset("-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+def sanify_filename(filename):
+    filename = filename.encode("ascii", "ignore")
+    filename = "".join(c for c in filename if c in valid_chars)
+    return filename
+
 
 def urlopen(url, max_age):
 	if not os.path.isdir(CACHE_DIR):
@@ -96,6 +102,8 @@ def grab_json(url, max_age):
 	return doc
 
 def download_rtmp(filename, vbase, vpath, hash_url=None):
+	filename = sanify_filename(filename)
+	print "Downloading: %s" % filename
 	if vpath.endswith(".flv"):
 		vpath = vpath[:-4]
 	cmd = [
@@ -104,6 +112,7 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 		"-r", vbase,
 		"-y", vpath,
 	]
+	print cmd
 	if hash_url is not None:
 		cmd += ["--swfVfy", hash_url]
 	try:
@@ -127,6 +136,7 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 			p.wait()
 
 def download_urllib(filename, url):
+	filename = sanify_filename(filename)
 	print "Downloading: %s -> %s" % (url, filename)
 	try:
 		src = urllib.urlopen(url)
