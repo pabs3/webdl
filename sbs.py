@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_json, grab_xml, download_rtmp, Node
+from common import grab_json, grab_xml, download_rtmp, download_urllib, Node
 
 import collections
 
@@ -41,12 +41,19 @@ class SbsNode(Node):
 				best_url = d["plfile$url"]
 
 		doc = grab_xml(best_url, 3600)
-		vbase = doc.xpath("//smil:meta/@base", namespaces=NS)[0]
-		vpath = doc.xpath("//smil:video/@src", namespaces=NS)[0]
-		ext = vpath.rsplit(".", 1)[1]
-		filename = self.title + "." + ext
-
-		return download_rtmp(filename, vbase, vpath)
+		if doc.xpath("//smil:meta/@base", namespaces=NS):
+			vbase = doc.xpath("//smil:meta/@base", namespaces=NS)[0]
+			vpath = doc.xpath("//smil:video/@src", namespaces=NS)[0]
+			ext = vpath.rsplit(".", 1)[1]
+			filename = self.title + "." + ext
+			return download_rtmp(filename, vbase, vpath)
+		else:
+			from lxml import etree
+			url = doc.xpath("//smil:video/@src", namespaces=NS)[0]
+			ext = url.rsplit(".", 1)[1]
+			filename = self.title + "." + ext
+			url += "?v=2.5.14&fp=MAC%2011,1,102,55&r=FLQDD&g=YNANAXRIYFYO"
+			return download_urllib(filename, url)
 
 def fill_entry(get_catnode, entry):
 	title = entry["title"]
@@ -77,17 +84,26 @@ def fill_section(get_catnode, section):
 			fill_entry(get_catnode, entry)
 		index += doc["itemsPerPage"]
 
-def fill_nodes(root_node):
-	catnodes = {}
-	def get_catnode(name):
+class SbsRoot(Node):
+	def __init__(self, title, parent=None):
+		Node.__init__(self, title, parent)
+		self.catnodes = {}
+
+	def get_catnode(self, name):
 		try:
-			return catnodes[name]
+			return self.catnodes[name]
 		except KeyError:
-			n = Node(name, root_node)
-			catnodes[name] = n
+			n = Node(name, self)
+			self.catnodes[name] = n
 			return n
 
-	for section in SECTIONS:
-		fill_section(get_catnode, section)
+	def get_children(self):
+		if self.children:
+			return self.children
+		for section in SECTIONS:
+			fill_section(self.get_catnode, section)
+		return self.children
 
+def fill_nodes(root_node):
+	SbsRoot("SBS", root_node)
 

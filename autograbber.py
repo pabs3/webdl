@@ -39,7 +39,7 @@ def match(download_list, node, pattern, count=0):
 		print "No match found for pattern:", "/".join(pattern)
 		return
 	p = pattern[count]
-	for child in node.children:
+	for child in node.get_children():
 		if fnmatch.fnmatch(child.title, p):
 			match(download_list, child, pattern, count+1)
 

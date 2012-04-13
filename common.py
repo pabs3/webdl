@@ -30,6 +30,9 @@ class Node(object):
 		self.children = []
 		self.can_download = False
 
+	def get_children(self):
+		return self.children
+
 	def download(self):
 		raise NotImplemented
 
@@ -37,19 +40,11 @@ class Node(object):
 def load_root_node():
 	root_node = Node("Root")
 
-	print "Loading iView episode data...",
-	sys.stdout.flush()
 	import iview
-	iview_node = Node("ABC iView", root_node)
-	iview.fill_nodes(iview_node)
-	print "done"
+	iview.fill_nodes(root_node)
 
-	print "Loading SBS episode data...",
-	sys.stdout.flush()
 	import sbs
-	sbs_node = Node("SBS", root_node)
-	sbs.fill_nodes(sbs_node)
-	print "done"
+	sbs.fill_nodes(root_node)
 
 	return root_node
 
@@ -61,6 +56,7 @@ def sanify_filename(filename):
 
 
 def urlopen(url, max_age):
+###	print url
 	if not os.path.isdir(CACHE_DIR):
 		os.makedirs(CACHE_DIR)
 
@@ -112,7 +108,6 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 		"-r", vbase,
 		"-y", vpath,
 	]
-	print cmd
 	if hash_url is not None:
 		cmd += ["--swfVfy", hash_url]
 	try:
@@ -137,16 +132,28 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 
 def download_urllib(filename, url):
 	filename = sanify_filename(filename)
-	print "Downloading: %s -> %s" % (url, filename)
+	print "Downloading: %s" % filename
 	try:
 		src = urllib.urlopen(url)
 		dst = open(filename, "w")
-		shutil.copyfileobj(src, dst)
+		while True:
+			buf = src.read(1024*1024)
+			if not buf:
+				break
+			dst.write(buf)
+			sys.stdout.write(".")
+			sys.stdout.flush()
 		return True
 	except KeyboardInterrupt:
 		print "\nCancelled", url
 	finally:
-		src.close()
-		dst.close()
+		try:
+			src.close()
+		except:
+			pass
+		try:
+			dst.close()
+		except:
+			pass
 	return False
 

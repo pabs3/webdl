@@ -32,7 +32,7 @@ def main():
 	while True:
 		options = {}
 		will_download = True
-		for n in node.children:
+		for n in node.get_children():
 			options[n.title] = n
 			if not n.can_download:
 				will_download = False
