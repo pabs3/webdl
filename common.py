@@ -51,6 +51,9 @@ def load_root_node():
 	import sbs
 	sbs.fill_nodes(root_node)
 
+	import plus7
+	plus7.fill_nodes(root_node)
+
 	return root_node
 
 valid_chars = frozenset("-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
@@ -92,13 +95,13 @@ def urlopen(url, max_age):
 
 def grab_html(url, max_age):
 	f = urlopen(url, max_age)
-	doc = html.parse(f)
+	doc = html.parse(f, html.HTMLParser(encoding="utf-8", recover=True))
 	f.close()
 	return doc
 
 def grab_xml(url, max_age):
 	f = urlopen(url, max_age)
-	doc = etree.parse(f)
+	doc = etree.parse(f, etree.XMLParser(encoding="utf-8", recover=True))
 	f.close()
 	return doc
 
@@ -134,7 +137,8 @@ def convert_flv_mp4(orig_filename):
 	basename = os.path.splitext(orig_filename)[0]
 	flv_filename = basename + ".flv"
 	mp4_filename = basename + ".mp4"
-	os.rename(orig_filename, flv_filename)
+	if orig_filename != flv_filename:
+		os.rename(orig_filename, flv_filename)
 	print "Converting %s to mp4" % flv_filename
 	cmd = [
 		"ffmpeg",
