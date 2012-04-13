@@ -1,6 +1,6 @@
 # vim:ts=4:sts=4:sw=4:noet
 
-from lxml import etree
+from lxml import etree, html
 import json
 try:
 	import hashlib
@@ -84,6 +84,12 @@ def urlopen(url, max_age):
 	dst.close()
 
 	return open(filename)
+
+def grab_html(url, max_age):
+	f = urlopen(url, max_age)
+	doc = html.parse(f)
+	f.close()
+	return doc
 
 def grab_xml(url, max_age):
 	f = urlopen(url, max_age)
