@@ -97,6 +97,61 @@ def grab_json(url, max_age):
 	f.close()
 	return doc
 
+def exec_subprocess(cmd):
+	try:
+		p = subprocess.Popen(cmd)
+		ret = p.wait()
+		if ret != 0:
+			print >>sys.stderr, cmd[0], "exited with error code:", ret
+			return False
+		else:
+			return True
+	except OSError, e:
+		print >>sys.stderr, "Failed to run", cmd[0], e
+	except KeyboardInterrupt:
+		print "Cancelled", cmd
+		try:
+			p.terminate()
+			p.wait()
+		except KeyboardInterrupt:
+			p.send_signal(signal.SIGKILL)
+			p.wait()
+	return False
+
+
+def convert_flv_mp4(orig_filename):
+	basename = os.path.splitext(orig_filename)[0]
+	flv_filename = basename + ".flv"
+	mp4_filename = basename + ".mp4"
+	os.rename(orig_filename, flv_filename)
+	print "Converting %s to mp4" % flv_filename
+	cmd = [
+		"ffmpeg",
+		"-i", flv_filename,
+		"-acodec", "copy",
+		"-vcodec", "copy",
+		mp4_filename,
+	]
+	if not exec_subprocess(cmd):
+		return
+	try:
+		flv_size = os.stat(flv_filename).st_size
+		mp4_size = os.stat(mp4_filename).st_size
+		if abs(flv_size - mp4_size) < 0.05 * flv_size:
+			os.unlink(flv_filename)
+		else:
+			print >>sys.stderr, "The size of", mp4_filename, "is suspicious, did ffmpeg fail?"
+	except Exception, e:
+		print "Conversion failed", e
+
+def convert_filename(filename):
+	if filename.lower().endswith(".mp4"):
+		f = open(filename)
+		fourcc = f.read(4)
+		f.close()
+		if fourcc == "FLV\x01":
+			convert_flv_mp4(filename)
+
 def download_rtmp(filename, vbase, vpath, hash_url=None):
 	filename = sanify_filename(filename)
 	print "Downloading: %s" % filename
@@ -110,25 +165,9 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 	]
 	if hash_url is not None:
 		cmd += ["--swfVfy", hash_url]
-	try:
-		p = subprocess.Popen(cmd)
-		ret = p.wait()
-		if ret != 0:
-			print >>sys.stderr, "rtmpdump exited with error code:", ret
-			return False
-		else:
-			return True
-	except OSError, e:
-		print >>sys.stderr, "Failed to run rtmpdump!", e
-		return False
-	except KeyboardInterrupt:
-		print "Cancelled", cmd
-		try:
-			p.terminate()
-			p.wait()
-		except KeyboardInterrupt:
-			p.send_signal(signal.SIGKILL)
-			p.wait()
+	success = exec_subprocess(cmd)
+	convert_filename(filename)
+	return success
 
 def download_urllib(filename, url):
 	filename = sanify_filename(filename)
@@ -143,6 +182,7 @@ def download_urllib(filename, url):
 			dst.write(buf)
 			sys.stdout.write(".")
 			sys.stdout.flush()
+		convert_filename(filename)
 		return True
 	except KeyboardInterrupt:
 		print "\nCancelled", url
