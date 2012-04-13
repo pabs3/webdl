@@ -85,8 +85,8 @@ def fill_section(get_catnode, section):
 		index += doc["itemsPerPage"]
 
 class SbsRoot(Node):
-	def __init__(self, title, parent=None):
-		Node.__init__(self, title, parent)
+	def __init__(self, parent=None):
+		Node.__init__(self, "SBS", parent)
 		self.catnodes = {}
 
 	def get_catnode(self, name):
@@ -97,13 +97,10 @@ class SbsRoot(Node):
 			self.catnodes[name] = n
 			return n
 
-	def get_children(self):
-		if self.children:
-			return self.children
+	def fill_children(self):
 		for section in SECTIONS:
 			fill_section(self.get_catnode, section)
-		return self.children
 
 def fill_nodes(root_node):
-	SbsRoot("SBS", root_node)
+	SbsRoot(root_node)
 

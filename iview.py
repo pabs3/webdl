@@ -34,10 +34,7 @@ class IviewSeries(Node):
 		self.series_title = series_title
 		self.series_id = series_id
 
-	def get_children(self):
-		if self.children:
-			return self.children
-		print "DOWNLOADING SERIES"
+	def fill_children(self):
 		series_doc = grab_json(PARAMS["api"] + "series=" + self.series_id, 3600)[0]
 		for episode in series_doc["f"]:
 			vpath = episode["n"]
@@ -45,7 +42,6 @@ class IviewSeries(Node):
 			if self.series_title != episode_title:
 				episode_title = self.series_title + " " + episode_title
 			IviewNode(episode_title, self, vpath)
-		return self.children
 
 
 

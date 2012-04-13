@@ -31,7 +31,12 @@ class Node(object):
 		self.can_download = False
 
 	def get_children(self):
+		if not self.children:
+			self.fill_children()
 		return self.children
+
+	def fill_children(self):
+		pass
 
 	def download(self):
 		raise NotImplemented
