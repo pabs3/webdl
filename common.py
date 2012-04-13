@@ -160,7 +160,7 @@ def convert_flv_mp4(orig_filename):
 		print "Conversion failed", e
 
 def convert_filename(filename):
-	if filename.lower().endswith(".mp4"):
+	if os.path.splitext(filename.lower())[1] in (".mp4", ".flv"):
 		f = open(filename)
 		fourcc = f.read(4)
 		f.close()
@@ -180,9 +180,11 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 	]
 	if hash_url is not None:
 		cmd += ["--swfVfy", hash_url]
-	success = exec_subprocess(cmd)
-	convert_filename(filename)
-	return success
+	if exec_subprocess(cmd):
+		convert_filename(filename)
+		return True
+	else:
+		return False
 
 def download_urllib(filename, url):
 	filename = sanify_filename(filename)
