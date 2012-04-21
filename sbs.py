@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_json, grab_xml, download_rtmp, download_urllib, Node
+from common import grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node
 
 import collections
 
 BASE = "http://www.sbs.com.au"
 MENU_URL = "/api/video_feed/f/dYtmxB/%s?startIndex=%d"
-VIDEO_URL = BASE + "/api/video_feed/f/dYtmxB/CxeOeDELXKEv/%s?form=json"
+VIDEO_URL = BASE + "/ondemand/video/single/%s"
 
 NS = {
 	"smil": "http://www.w3.org/2005/SMIL21/Language",
@@ -31,29 +31,34 @@ class SbsNode(Node):
 		self.can_download = True
 
 	def download(self):
-		doc = grab_json(VIDEO_URL % self.video_id, 0)
+		doc = grab_html(VIDEO_URL % self.video_id, 0)
+		desc_url = None
+		for script in doc.xpath("//script", namespaces=NS):
+            if not script.text:
+                continue
+            for line in script.text.split("\n"):
+                if line.find("player.releaseUrl") < 0:
+                    continue
+                desc_url = line[line.find("\"")+1 : line.rfind("\"")]
+				break
+			if desc_url is not None:
+				break
+		if desc_url is None:
+			raise Exception("Failed to get JSON URL for " + self.title)
+
+		doc = grab_xml(desc_url, 0)
 		best_url = None
 		best_bitrate = 0
-		for d in doc["media$content"]:
-			bitrate = d["plfile$bitrate"]
-			if bitrate > best_bitrate or best_url is None:
+		for video in doc.xpath("//smil:video", namespaces=NS):
+			bitrate = int(video.attrib["system-bitrate"])
+			if best_bitrate == 0 or best_bitrate < bitrate:
 				best_bitrate = bitrate
-				best_url = d["plfile$url"]
+				best_url = video.attrib["src"]
 
-		doc = grab_xml(best_url, 3600)
-		if doc.xpath("//smil:meta/@base", namespaces=NS):
-			vbase = doc.xpath("//smil:meta/@base", namespaces=NS)[0]
-			vpath = doc.xpath("//smil:video/@src", namespaces=NS)[0]
-			ext = vpath.rsplit(".", 1)[1]
-			filename = self.title + "." + ext
-			return download_rtmp(filename, vbase, vpath)
-		else:
-			from lxml import etree
-			url = doc.xpath("//smil:video/@src", namespaces=NS)[0]
-			ext = url.rsplit(".", 1)[1]
-			filename = self.title + "." + ext
-			url += "?v=2.5.14&fp=MAC%2011,1,102,55&r=FLQDD&g=YNANAXRIYFYO"
-			return download_urllib(filename, url)
+		ext = best_url.rsplit(".", 1)[1]
+		filename = self.title + "." + ext
+		best_url += "?v=2.5.14&fp=MAC%2011,1,102,55&r=FLQDD&g=YNANAXRIYFYO"
+		return download_urllib(filename, best_url)
 
 def fill_entry(get_catnode, entry):
 	title = entry["title"]
