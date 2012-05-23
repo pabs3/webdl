@@ -39,7 +39,7 @@ class IviewSeries(Node):
 		for episode in series_doc["f"]:
 			vpath = episode["n"]
 			episode_title = episode["b"].strip()
-			if self.series_title != episode_title:
+			if not episode_title.startswith(self.series_title):
 				episode_title = self.series_title + " " + episode_title
 			IviewNode(episode_title, self, vpath)
 
