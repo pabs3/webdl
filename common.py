@@ -56,7 +56,7 @@ def load_root_node():
 
 	return root_node
 
-valid_chars = frozenset("-_.() abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+valid_chars = frozenset("-_.()!@#%^ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 def sanify_filename(filename):
     filename = filename.encode("ascii", "ignore")
     filename = "".join(c for c in filename if c in valid_chars)
