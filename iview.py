@@ -41,6 +41,8 @@ class IviewSeries(Node):
 			episode_title = episode["b"].strip()
 			if not episode_title.startswith(self.series_title):
 				episode_title = self.series_title + " " + episode_title
+			if episode_title.lower().endswith(" (final)"):
+				episode_title = episode_title[:-8]
 			IviewNode(episode_title, self, vpath)
 
 
