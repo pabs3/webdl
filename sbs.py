@@ -82,7 +82,11 @@ def fill_entry(get_catnode, entry):
 def fill_section(get_catnode, section):
 	index = 1
 	while True:
-		doc = grab_json(BASE + MENU_URL % (section, index), 3600)
+		try:
+			doc = grab_json(BASE + MENU_URL % (section, index), 3600)
+		except ValueError:
+			# SBS sends XML as an error message :\
+			break
 		if len(doc.get("entries", [])) == 0:
 			break
 		for entry in doc["entries"]:
