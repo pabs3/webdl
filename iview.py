@@ -35,8 +35,10 @@ class IviewSeries(Node):
 		self.series_id = series_id
 
 	def fill_children(self):
-		series_doc = grab_json(PARAMS["api"] + "series=" + self.series_id, 3600)[0]
-		for episode in series_doc["f"]:
+		series_doc = grab_json(PARAMS["api"] + "series=" + self.series_id, 3600)
+		if not series_doc:
+			return
+		for episode in series_doc[0]["f"]:
 			vpath = episode["n"]
 			episode_title = episode["b"].strip()
 			if not episode_title.startswith(self.series_title):
