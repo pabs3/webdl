@@ -7,6 +7,7 @@ try:
 except ImportError:
 	import md5 as hashlib
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -14,6 +15,7 @@ import sys
 import tempfile
 import time
 import urllib
+import urlparse
 
 
 import autosocks
@@ -29,6 +31,7 @@ class Node(object):
 		self.parent = parent
 		self.children = []
 		self.can_download = False
+		self.sort_children = False
 
 	def get_children(self):
 		if not self.children:
@@ -105,9 +108,14 @@ def grab_xml(url, max_age):
 	f.close()
 	return doc
 
-def grab_json(url, max_age):
+def grab_json(url, max_age, skip_assignment=False):
 	f = urlopen(url, max_age)
-	doc = json.load(f)
+	if skip_assignment:
+		text = f.read()
+		pos = text.find("=")
+		doc = json.loads(text[pos+1:])
+	else:
+		doc = json.load(f)
 	f.close()
 	return doc
 
@@ -213,4 +221,31 @@ def download_urllib(filename, url):
 		except:
 			pass
 	return False
+
+def natural_sort(l, key=None):
+	ignore_list = ["a", "the"]
+	def key_func(k):
+		if key is not None:
+			k = key(k)
+		k = k.lower()
+		newk = []
+		for c in re.split("([0-9]+)", k):
+			c = c.strip()
+			if c.isdigit():
+				newk.append(int(c))
+			else:
+				for subc in c.split():
+					if subc not in ignore_list:
+						newk.append(subc)
+		return newk
+
+    return sorted(l, key=key_func)
+
+def append_to_qs(url, params):
+	r = list(urlparse.urlsplit(url))
+	qs = urlparse.parse_qs(r[3])
+	qs.update(params)
+	r[3] = urllib.urlencode(qs, True)
+	url = urlparse.urlunsplit(r)
+	return url
 
