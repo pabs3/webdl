@@ -61,9 +61,9 @@ def load_root_node():
 
 valid_chars = frozenset("-_.()!@#%^ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 def sanify_filename(filename):
-    filename = filename.encode("ascii", "ignore")
-    filename = "".join(c for c in filename if c in valid_chars)
-    return filename
+	filename = filename.encode("ascii", "ignore")
+	filename = "".join(c for c in filename if c in valid_chars)
+	return filename
 
 
 def urlopen(url, max_age):
@@ -239,7 +239,7 @@ def natural_sort(l, key=None):
 						newk.append(subc)
 		return newk
 
-    return sorted(l, key=key_func)
+	return sorted(l, key=key_func)
 
 def append_to_qs(url, params):
 	r = list(urlparse.urlsplit(url))
