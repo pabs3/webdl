@@ -45,7 +45,6 @@ class Plus7Series(Node):
 	def __init__(self, title, parent, url):
 		Node.__init__(self, title, parent)
 		self.url = url
-		self.sort_children = True
 
 	def fill_children(self):
 		doc = grab_html(self.url, 3600)
@@ -60,7 +59,6 @@ class Plus7Series(Node):
 class Plus7Root(Node):
 	def __init__(self, parent=None):
 		Node.__init__(self, "Yahoo Plus7", parent)
-		self.sort_children = True
 
 	def fill_children(self):
 		doc = grab_html(BROWSE, 3600)

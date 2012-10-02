@@ -34,7 +34,6 @@ class IviewSeriesNode(Node):
 		Node.__init__(self, title, parent)
 		self.params = params
 		self.series_id = series_id
-		self.sort_children = True
 
 	def fill_children(self):
 		series_doc = grab_json(self.params["api"] + "series=" + self.series_id, 3600)
@@ -52,7 +51,6 @@ class IviewSeriesNode(Node):
 class IviewRootNode(Node):
 	def __init__(self, parent):
 		Node.__init__(self, "ABC iView", parent)
-		self.sort_children = True
 
 	def fill_children(self):
 		config_doc = grab_xml(CONFIG_URL, 24*3600)
@@ -64,7 +62,6 @@ class IviewRootNode(Node):
 			cid = category.attrib["id"]
 			category_name = category.xpath("name/text()")[0]
 			category_node = Node(category_name, self)
-			category_node.sort_children = True
 			categories_map[cid] = category_node
 
 		# Create a duplicate of each series within each category that it appears

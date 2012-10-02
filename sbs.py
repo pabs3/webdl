@@ -58,7 +58,6 @@ class SbsNavNode(Node):
 	def __init__(self, title, parent, url):
 		Node.__init__(self, title, parent)
 		self.url = url
-		self.sort_children = True
 
 	def fill_children(self):
 		try:
@@ -100,9 +99,9 @@ class SbsRootNode(Node):
 			return
 
 		node = Node(cat_data["name"], parent)
-		self.create_nav_node("Featured", node, cat_data, "furl")
-		self.create_nav_node("Latest", node, cat_data, "url")
-		self.create_nav_node("Most Popular", node, cat_data, "purl")
+		self.create_nav_node("-Featured", node, cat_data, "furl")
+		self.create_nav_node("-Latest", node, cat_data, "url")
+		self.create_nav_node("-Most Popular", node, cat_data, "purl")
 
 		children = cat_data.get("children", [])
 		if isinstance(children, dict):

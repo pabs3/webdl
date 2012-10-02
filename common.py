@@ -34,7 +34,6 @@ class Node(object):
 		self.parent = parent
 		self.children = []
 		self.can_download = False
-		self.sort_children = False
 
 	def get_children(self):
 		if not self.children:

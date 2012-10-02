@@ -37,8 +37,7 @@ def main():
 			options.append((n.title, n))
 			if not n.can_download:
 				will_download = False
-		if node.sort_children:
-			options = natural_sort(options, key=lambda x: x[0])
+		options = natural_sort(options, key=lambda x: x[0])
 		result = choose(options, allow_multi=will_download)
 		if result is None:
 			if node.parent is not None:
