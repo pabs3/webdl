@@ -1,6 +1,7 @@
 # vim:ts=4:sts=4:sw=4:noet
 
 from lxml import etree, html
+import cookielib
 import json
 try:
 	import hashlib
@@ -15,6 +16,7 @@ import sys
 import tempfile
 import time
 import urllib
+import urllib2
 import urlparse
 
 
@@ -22,6 +24,7 @@ import autosocks
 autosocks.try_autosocks()
 
 CACHE_DIR = os.path.expanduser("~/.cache/webdl")
+USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1"
 
 class Node(object):
 	def __init__(self, title, parent=None):
@@ -65,6 +68,14 @@ def sanify_filename(filename):
 	filename = "".join(c for c in filename if c in valid_chars)
 	return filename
 
+cookiejar = cookielib.CookieJar()
+urlopener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
+def _urlopen(url, referrer=None):
+	req = urllib2.Request(url)
+	req.add_header("User-Agent", USER_AGENT)
+	if referrer:
+		req.add_header("Referer", referrer)
+	return urlopener.open(req)
 
 def urlopen(url, max_age):
 ###	print url
@@ -72,7 +83,7 @@ def urlopen(url, max_age):
 		os.makedirs(CACHE_DIR)
 
 	if max_age <= 0:
-		return urllib.urlopen(url)
+		return _urlopen(url)
 
 	filename = hashlib.md5(url).hexdigest()
 	filename = os.path.join(CACHE_DIR, filename)
@@ -81,7 +92,7 @@ def urlopen(url, max_age):
 		if file_age < max_age:
 			return open(filename)
 
-	src = urllib.urlopen(url)
+	src = _urlopen(url)
 	dst = open(filename, "w")
 	try:
 		shutil.copyfileobj(src, dst)
@@ -194,11 +205,11 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
 	else:
 		return False
 
-def download_urllib(filename, url):
+def download_urllib(filename, url, referrer=None):
 	filename = sanify_filename(filename)
 	print "Downloading: %s" % filename
 	try:
-		src = urllib.urlopen(url)
+		src = _urlopen(url, referrer)
 		dst = open(filename, "w")
 		while True:
 			buf = src.read(1024*1024)
@@ -244,7 +255,11 @@ def natural_sort(l, key=None):
 def append_to_qs(url, params):
 	r = list(urlparse.urlsplit(url))
 	qs = urlparse.parse_qs(r[3])
-	qs.update(params)
+	for k, v in params.iteritems():
+		if v is not None:
+			qs[k] = v
+		elif qs.has_key(k):
+			del qs[k]
 	r[3] = urllib.urlencode(qs, True)
 	url = urlparse.urlunsplit(r)
 	return url

@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node
+from common import grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node, append_to_qs
 
 import collections
+import urlparse
 
 BASE = "http://www.sbs.com.au"
-MENU_URL = "/api/video_feed/f/dYtmxB/%s?startIndex=%d"
+VIDEO_MENU = BASE + "/ondemand/js/video-menu"
 VIDEO_URL = BASE + "/ondemand/video/single/%s"
+VIDEO_MAGIC = {
+	"v": "2.5.14",
+	"fp": "MAC 11,1,102,55",
+	"r": "FLQDD",
+	"g": "YNANAXRIYFYO",
+}
+SWF_URL = "http://resources.sbs.com.au/vod/theplatform/core/current/swf/flvPlayer.swf"
 
 NS = {
 	"smil": "http://www.w3.org/2005/SMIL21/Language",
-}
-
-SECTIONS = [
-	"section-sbstv",
-	"section-programs",
-]
-
-CATEGORY_MAP = {
-	"Factual": "Documentary",
 }
 
 
@@ -34,82 +33,84 @@ class SbsNode(Node):
 		doc = grab_html(VIDEO_URL % self.video_id, 0)
 		desc_url = None
 		for script in doc.xpath("//script", namespaces=NS):
-            if not script.text:
-                continue
-            for line in script.text.split("\n"):
-                if line.find("player.releaseUrl") < 0:
-                    continue
-                desc_url = line[line.find("\"")+1 : line.rfind("\"")]
+			if not script.text:
+				continue
+			for line in script.text.split("\n"):
+				if line.find("player.releaseUrl") < 0:
+					continue
+				desc_url = line[line.find("\"")+1 : line.rfind("\"")]
 				break
 			if desc_url is not None:
 				break
 		if desc_url is None:
 			raise Exception("Failed to get JSON URL for " + self.title)
 
+		desc_url = append_to_qs(desc_url, {"manifest": None})
 		doc = grab_xml(desc_url, 0)
-		best_url = None
-		best_bitrate = 0
-		for video in doc.xpath("//smil:video", namespaces=NS):
-			bitrate = int(video.attrib["system-bitrate"])
-			if best_bitrate == 0 or best_bitrate < bitrate:
-				best_bitrate = bitrate
-				best_url = video.attrib["src"]
-
-		ext = best_url.rsplit(".", 1)[1]
+		video = doc.xpath("//smil:video", namespaces=NS)[0]
+		video_url = video.attrib["src"]
+		ext = urlparse.urlsplit(video_url).path.rsplit(".", 1)[1]
 		filename = self.title + "." + ext
-		best_url += "?v=2.5.14&fp=MAC%2011,1,102,55&r=FLQDD&g=YNANAXRIYFYO"
-		return download_urllib(filename, best_url)
+		video_url = append_to_qs(video_url, VIDEO_MAGIC)
+		print video_url
+		return download_urllib(filename, video_url, referrer=SWF_URL)
 
-def fill_entry(get_catnode, entry):
-	title = entry["title"]
-	video_id = entry["id"]
-	info = collections.defaultdict(list)
-	for d in entry["media$categories"]:
-		if not d.has_key("media$scheme"):
-			continue
-		info[d["media$scheme"]].append(d["media$name"])
-
-	if "Section/Promos" in info.get("Section", []):
-		# ignore promos
-		return
-
-	for category in info.get("Genre", ["$UnknownCategory$"]):
-		category = CATEGORY_MAP.get(category, category)
-		parent_node = get_catnode(category)
-		SbsNode(title, parent_node, video_id)
-
-
-def fill_section(get_catnode, section):
-	index = 1
-	while True:
-		try:
-			doc = grab_json(BASE + MENU_URL % (section, index), 3600)
-		except ValueError:
-			# SBS sends XML as an error message :\
-			break
-		if len(doc.get("entries", [])) == 0:
-			break
-		for entry in doc["entries"]:
-			fill_entry(get_catnode, entry)
-		index += doc["itemsPerPage"]
-
-class SbsRoot(Node):
-	def __init__(self, parent=None):
-		Node.__init__(self, "SBS", parent)
-		self.catnodes = {}
-
-	def get_catnode(self, name):
-		try:
-			return self.catnodes[name]
-		except KeyError:
-			n = Node(name, self)
-			self.catnodes[name] = n
-			return n
+class SbsNavNode(Node):
+	def __init__(self, title, parent, url):
+		Node.__init__(self, title, parent)
+		self.url = url
+		self.sort_children = True
 
 	def fill_children(self):
-		for section in SECTIONS:
-			fill_section(self.get_catnode, section)
+		try:
+			doc = grab_json(BASE + self.url, 3600)
+		except ValueError:
+			# SBS sends XML as an error message :\
+			return
+		if len(doc.get("entries", [])) == 0:
+			return
+		for entry in doc["entries"]:
+			self.fill_entry(entry)
+
+	def fill_entry(self, entry):
+		title = entry["title"]
+		video_id = entry["id"]
+		SbsNode(title, self, video_id)
+
+class SbsRootNode(Node):
+	def __init__(self, parent=None):
+		Node.__init__(self, "SBS", parent)
+
+	def fill_children(self):
+		menu = grab_json(VIDEO_MENU, 3600, skip_assignment=True)
+		for name in menu.keys():
+			self.fill_category(self, menu[name])
+
+	def create_nav_node(self, name, parent, cat_data, url_key):
+		try:
+			url = cat_data[url_key]
+		except KeyError:
+			return
+		if url.strip():
+			SbsNavNode(name, parent, url)
+
+	def fill_category(self, parent, cat_data):
+		if not cat_data.has_key("children"):
+			name = cat_data["name"]
+			self.create_nav_node(name, parent, cat_data, "url")
+			return
+
+		node = Node(cat_data["name"], parent)
+		self.create_nav_node("Featured", node, cat_data, "furl")
+		self.create_nav_node("Latest", node, cat_data, "url")
+		self.create_nav_node("Most Popular", node, cat_data, "purl")
+
+		children = cat_data.get("children", [])
+		if isinstance(children, dict):
+			children = [children[k] for k in sorted(children.keys())]
+		for child_cat in children:
+			self.fill_category(node, child_cat)
 
 def fill_nodes(root_node):
-	SbsRoot(root_node)
+	SbsRootNode(root_node)
 
