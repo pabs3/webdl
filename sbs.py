@@ -52,7 +52,6 @@ class SbsNode(Node):
 		ext = urlparse.urlsplit(video_url).path.rsplit(".", 1)[1]
 		filename = self.title + "." + ext
 		video_url = append_to_qs(video_url, VIDEO_MAGIC)
-		print video_url
 		return download_urllib(filename, video_url, referrer=SWF_URL)
 
 class SbsNavNode(Node):
