@@ -22,27 +22,25 @@ def extract_and_remove(tokens, key):
 	return value, tokens
 
 
-def demangle_title(title):
-	# Postman Pat - Postman Pat and the Runaway Kite Series 1 Episode 1
+def demangle_title(title, subtitle):
 	tokens = title.split()
+	insert_pos = len(tokens)
+	if subtitle:
+		insert_pos += 1
+		tokens += ["-"] + subtitle.split()
 
 	try:
 		season, tokens = extract_and_remove(tokens, "series")
 		episode, tokens = extract_and_remove(tokens, "episode")
+		tokens.insert(insert_pos, "%sx%s -" % (season, str(episode).zfill(2)))
 	except ValueError:
-		return title
-
-	try:
-		i = tokens.index("-") + 1
-	except ValueError:
-		i = 0
-	tokens.insert(i, "%sx%s - " % (season, str(episode).zfill(2)))
+		pass
 
 	return " ".join(tokens)
 
 class Plus7Node(Node):
 	def __init__(self, title, parent, url):
-		Node.__init__(self, demangle_title(title), parent)
+		Node.__init__(self, title, parent)
 		self.url = url
 		self.can_download = True
 	
@@ -79,8 +77,7 @@ class Plus7Series(Node):
 		for item in CSSSelector("#related-episodes div.itemdetails")(doc):
 			title = CSSSelector("span.title")(item)[0].text
 			subtitle = CSSSelector("span.subtitle")(item)[0].xpath("string()")
-			if subtitle and subtitle.strip():
-				title += " - " + subtitle.strip().replace("  ", " ")
+			title = demangle_title(title, subtitle)
 			url = CSSSelector("a")(item)[0].attrib["href"]
 			Plus7Node(title, self, BASE + url)
 
