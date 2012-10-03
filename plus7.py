@@ -12,9 +12,37 @@ BROWSE = BASE + "/plus7/browse/"
 HASH_URL = "http://d.yimg.com/nl/australia/au-tv/player.swf"
 HASH_URL = "http://d.yimg.com/m/up/ypp/au/player.swf"
 
+def extract_and_remove(tokens, key):
+	lowertokens = [x.lower() for x in tokens]
+	pos = lowertokens.index(key)
+
+	value = int(tokens[pos+1])
+	tokens = tokens[:pos] + tokens[pos+2:]
+
+	return value, tokens
+
+
+def demangle_title(title):
+	# Postman Pat - Postman Pat and the Runaway Kite Series 1 Episode 1
+	tokens = title.split()
+
+	try:
+		season, tokens = extract_and_remove(tokens, "series")
+		episode, tokens = extract_and_remove(tokens, "episode")
+	except ValueError:
+		return title
+
+	try:
+		i = tokens.index("-") + 1
+	except ValueError:
+		i = 0
+	tokens.insert(i, "%sx%s - " % (season, str(episode).zfill(2)))
+
+	return " ".join(tokens)
+
 class Plus7Node(Node):
 	def __init__(self, title, parent, url):
-		Node.__init__(self, title, parent)
+		Node.__init__(self, demangle_title(title), parent)
 		self.url = url
 		self.can_download = True
 	
