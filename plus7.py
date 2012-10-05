@@ -32,7 +32,9 @@ def demangle_title(title, subtitle):
 	try:
 		season, tokens = extract_and_remove(tokens, "series")
 		episode, tokens = extract_and_remove(tokens, "episode")
-		tokens.insert(insert_pos, "%sx%s -" % (season, str(episode).zfill(2)))
+		if insert_pos < len(tokens):
+			tokens.insert(insert_pos, "-")
+		tokens.insert(insert_pos, "%sx%s" % (season, str(episode).zfill(2)))
 	except ValueError:
 		pass
 
