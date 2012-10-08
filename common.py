@@ -217,6 +217,7 @@ def download_urllib(filename, url, referrer=None):
 			dst.write(buf)
 			sys.stdout.write(".")
 			sys.stdout.flush()
+		print
 		convert_filename(filename)
 		return True
 	except KeyboardInterrupt:
