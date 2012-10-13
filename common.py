@@ -20,8 +20,11 @@ import urllib2
 import urlparse
 
 
-import autosocks
-autosocks.try_autosocks()
+try:
+	import autosocks
+	autosocks.try_autosocks()
+except ImportError:
+	pass
 
 CACHE_DIR = os.path.expanduser("~/.cache/webdl")
 USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1"
