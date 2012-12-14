@@ -17,7 +17,7 @@ def choose(options, allow_multi):
 				continue
 			if 0 in values:
 				return
-			values = [reverse_map[value] for value in values]
+			values = [reverse_map[value] for value in values if value in reverse_map]
 			if allow_multi:
 				return values
 			else:
