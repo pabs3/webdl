@@ -2,15 +2,26 @@
 # vim:ts=4:sts=4:sw=4:noet
 
 import json
+import random
+import string
+import urllib
 from lxml.cssselect import CSSSelector
 
-from common import grab_html, download_rtmp, Node
+from common import grab_html, grab_json, download_rtmp, Node
 
-METADATA = "http://cosmos.bcst.yahoo.com/rest/v2/pops;id=%d;lmsoverride=1;element=stream;bw=1200"
 BASE = "http://au.tv.yahoo.com"
 BROWSE = BASE + "/plus7/browse/"
-HASH_URL = "http://d.yimg.com/nl/australia/au-tv/player.swf"
+
+METADATA_BASE = "http://video.query.yahoo.com/v1/public/yql?"
+METADATA_QUERY = {
+	'q': 'SELECT streams,status FROM yahoo.media.video.streams WHERE id="%s" AND format="mp4,flv" AND protocol="rtmp,http" AND plrs="%s" AND offnetwork="false" AND site="autv_plus7" AND lang="en-AU" AND region="AU" AND override="none";',
+	'callback': 'jsonp_callback',
+	'env': 'prod',
+	'format': 'json'
+}
+
 HASH_URL = "http://d.yimg.com/m/up/ypp/au/player.swf"
+
 
 def extract_and_remove(tokens, key):
 	lowertokens = [x.lower() for x in tokens]
@@ -46,25 +57,47 @@ class Plus7Node(Node):
 		self.url = url
 		self.can_download = True
 	
-	def get_vid(self):
+	def get_video_id(self):
 		doc = grab_html(self.url, 3600)
 		for script in doc.xpath("//script"):
 			if not script.text:
 				continue
-			for line in script.text.split("\n"):
-				if line.find("vid : ") <= 0:
+			for line in script.text.split(";"):
+				line = line.strip()
+				if line.find("new Y.VideoPlatform.VideoPlayer") <= 0:
 					continue
-				vid = line[line.find("'")+1 : line.rfind("'")]
-				vid = int(vid)
-				return vid
-		raise Exception("Could not find vid on page " + self.url)
+
+###				vidparams = line[line.find("(")+1 : line.rfind(")")]
+###				vidparams = json.loads(vidparams)
+###				return vidparams["playlist"]["mediaItems"][0]["id"]
+
+				# Cannot parse it as JSON :(
+				pos1 = line.find('"mediaItems":')
+				if pos1 < 0:
+					continue
+				pos2 = line.find('"id":', pos1)
+				if pos2 < 0:
+					continue
+				pos3 = line.find('"', pos2+5)
+				pos4 = line.find('"', pos2+6)
+				if pos3 < 0 or pos4 < 0:
+					continue
+				return line[pos3+1:pos4]
+
+		raise Exception("Could not find video id on page " + self.url)
+
+	def generate_session(self):
+		return "".join([random.choice(string.ascii_letters) for x in xrange(22)])
 
 	def download(self):
-		vid = self.get_vid()
-		doc = grab_html(METADATA % vid, 0)
-		content = doc.xpath("//content")[0]
-		vbase = content.attrib["url"]
-		vpath = content.attrib["path"]
+		vid_id = self.get_video_id()
+		qs = dict(METADATA_QUERY.items()) # copy..
+		qs["q"] = qs["q"] % (vid_id, self.generate_session())
+		url = METADATA_BASE + urllib.urlencode(qs)
+		doc = grab_json(url, 0, skip_function=True)
+		stream_data = doc["query"]["results"]["mediaObj"][0]["streams"][0]
+		vbase = stream_data["host"]
+		vpath = stream_data["path"]
 		filename = self.title + ".flv"
 		return download_rtmp(filename, vbase, vpath, HASH_URL)
 

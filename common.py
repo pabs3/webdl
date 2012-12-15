@@ -121,12 +121,17 @@ def grab_xml(url, max_age):
 	f.close()
 	return doc
 
-def grab_json(url, max_age, skip_assignment=False):
+def grab_json(url, max_age, skip_assignment=False, skip_function=False):
 	f = urlopen(url, max_age)
 	if skip_assignment:
 		text = f.read()
 		pos = text.find("=")
 		doc = json.loads(text[pos+1:])
+	elif skip_function:
+		text = f.read()
+		pos = text.find("(")
+		rpos = text.rfind(")")
+		doc = json.loads(text[pos+1:rpos])
 	else:
 		doc = json.load(f)
 	f.close()
