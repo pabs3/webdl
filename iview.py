@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_xml, grab_json, download_rtmp, Node
+from common import append_to_qs, grab_xml, grab_json, download_rtmp, Node
 from datetime import datetime
 
 BASE_URL = "http://www.abc.net.au/iview/"
@@ -22,7 +22,7 @@ class IviewNode(Node):
 		auth_doc = grab_xml(self.params["auth"], 0)
 		vbase = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
 		token = auth_doc.xpath("//auth:token/text()", namespaces=NS)[0]
-		vbase += "?auth=" + token
+		vbase = append_to_qs(vbase, {"auth": token})
 		vpath, ext = self.vpath.rsplit(".", 1)
 		vpath = ext + ":" + vpath
 		filename = self.title + "." + ext
