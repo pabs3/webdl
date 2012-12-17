@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import append_to_qs, grab_xml, grab_json, download_rtmp, Node
+from common import grab_xml, grab_json, download_rtmp, Node
 from datetime import datetime
 
 BASE_URL = "http://www.abc.net.au/iview/"
@@ -9,6 +9,9 @@ CONFIG_URL = BASE_URL + "xml/config.xml"
 HASH_URL = BASE_URL + "images/iview.jpg"
 NS = {
 	"auth": "http://www.abc.net.au/iView/Services/iViewHandshaker",
+}
+PLAYPATH_PREFIXES = {
+	"akamai": "flash/playback/_definst_/",
 }
 
 class IviewNode(Node):
@@ -20,10 +23,13 @@ class IviewNode(Node):
 
 	def download(self):
 		auth_doc = grab_xml(self.params["auth"], 0)
+		host = auth_doc.xpath("//auth:host/text()", namespaces=NS)[0]
+		playpath_prefix = PLAYPATH_PREFIXES.get(host.lower(), "")
 		vbase = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
 		token = auth_doc.xpath("//auth:token/text()", namespaces=NS)[0]
-		vbase = append_to_qs(vbase, {"auth": token})
+		vbase += "?auth=" + token
 		vpath, ext = self.vpath.rsplit(".", 1)
+		vpath = playpath_prefix + vpath
 		vpath = ext + ":" + vpath
 		filename = self.title + "." + ext
 		return download_rtmp(filename, vbase, vpath, HASH_URL)
