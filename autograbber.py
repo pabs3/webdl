@@ -11,7 +11,7 @@ class DownloadList(object):
 		try:
 			self.f = open(filename, "r")
 			for line in self.f:
-				self.seen_list.add(line.strip())
+				self.seen_list.add(line.decode("utf-8").strip())
 			self.f.close()
 		except Exception, e:
 			print >>sys.stderr, "Could not open:", filename, e
@@ -22,7 +22,7 @@ class DownloadList(object):
 	
 	def mark_seen(self, node):
 		self.seen_list.add(node.title)
-		self.f.write(node.title + "\n")
+		self.f.write(node.title.encode("utf-8") + "\n")
 		self.f.flush()
 
 
