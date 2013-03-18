@@ -3,6 +3,7 @@
 
 from common import load_root_node
 import fnmatch
+import os
 import sys
 
 class DownloadList(object):
@@ -44,17 +45,24 @@ def match(download_list, node, pattern, count=0):
 			match(download_list, child, pattern, count+1)
 
 
-def main():
+def main(destdir, patternfile):
+	os.chdir(destdir)
 	node = load_root_node()
 	download_list = DownloadList("downloaded_auto.txt")
 
-	for search in sys.argv[1:]:
-		search = search.split("/")
+	for line in open(patternfile):
+		search = line.strip().split("/")
 		match(download_list, node, search)
 
 if __name__ == "__main__":
 	try:
-		main()
+		destdir = os.path.abspath(sys.argv[1])
+		patternfile = os.path.abspath(sys.argv[2])
+	except IndexError:
+		print >>sys.stderr, "Usage: %s destdir patternfile" % sys.argv[0]
+		sys.exit(1)
+	try:
+		main(destdir, patternfile)
 	except (KeyboardInterrupt, EOFError):
 		print "\nExiting..."
 
