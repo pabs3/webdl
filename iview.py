@@ -3,6 +3,7 @@
 
 from common import grab_xml, grab_json, download_rtmp, Node
 from datetime import datetime
+import itertools
 
 BASE_URL = "http://www.abc.net.au/iview/"
 CONFIG_URL = BASE_URL + "xml/config.xml"
@@ -54,34 +55,66 @@ class IviewSeriesNode(Node):
 				episode_title = episode_title[:-8]
 			IviewNode(episode_title, self, self.params, vpath)
 
+class SeriesInfo(object):
+	def __init__(self, title, sid, categories):
+		self.title = title
+		self.sid = sid
+		self.categories = categories
+
 class IviewRootNode(Node):
 	def __init__(self, parent):
 		Node.__init__(self, "ABC iView", parent)
+		self.params = {}
+		self.series_info = []
+		self.categories_map = {}
 
-	def fill_children(self):
+	def load_params(self):
 		config_doc = grab_xml(CONFIG_URL, 24*3600)
-		params = dict((p.attrib["name"], p.attrib["value"]) for p in config_doc.xpath("/config/param"))
+		for p in config_doc.xpath("/config/param"):
+			key = p.attrib["name"]
+			value = p.attrib["value"]
+			self.params[key] = value
 
-		categories_doc = grab_xml(BASE_URL + params["categories"], 24*3600)
-		categories_map = {}
-		for category in categories_doc.xpath("//category[@genre='true']"):
+	def load_series(self):
+		series_list_doc = grab_json(self.params["api"] + "seriesIndex", 3600)
+		for series in series_list_doc:
+			title = series["b"].replace("&amp;", "&")
+			sid = series["a"]
+			categories = series["e"].split()
+			info = SeriesInfo(title, sid, categories)
+			self.series_info.append(info)
+
+	def load_categories(self):
+		categories_doc = grab_xml(BASE_URL + self.params["categories"], 24*3600)
+		by_channel = Node("By Channel", self)
+		by_genre = Node("By Genre", self)
+		for category in categories_doc.xpath("//category"):
 			cid = category.attrib["id"]
 			category_name = category.xpath("name/text()")[0]
-			category_node = Node(category_name, self)
-			categories_map[cid] = category_node
+			if "genre" in category.attrib:
+				parent = by_genre
+			elif cid in ["abc1", "abc2", "abc3", "abc4", "original"]:
+				parent = by_channel
+			elif cid in ["featured", "recent", "last-chance", "trailers"]:
+				parent = self
+			else:
+				continue
+			node = Node(category_name, parent)
+			self.categories_map[cid] = node
 
-		# Create a duplicate of each series within each category that it appears
-		series_list_doc = grab_json(params["api"] + "seriesIndex", 3600)
-		for series in series_list_doc:
-			categories = series["e"].split()
-			sid = series["a"]
+	def link_series(self):
+		# Create a duplicate within each category for each series
+		for s in self.series_info:
+			for cid in s.categories:
+				parent = self.categories_map.get(cid)
+				if parent:
+					IviewSeriesNode(s.title, parent, self.params, s.sid)
 
-			series_title = series["b"].replace("&amp;", "&")
-			for cid in categories:
-				category_node = categories_map.get(cid, None)
-				if category_node:
-					IviewSeriesNode(series_title, category_node, params, sid)
-
+	def fill_children(self):
+		self.load_params()
+		self.load_series()
+		self.load_categories()
+		self.link_series()
 
 
 def fill_nodes(root_node):
