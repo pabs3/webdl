@@ -31,21 +31,12 @@ class SbsNode(Node):
 
 	def download(self):
 		doc = grab_html(VIDEO_URL % self.video_id, 0)
-		desc_url = None
-		for script in doc.xpath("//script", namespaces=NS):
-			if not script.text:
-				continue
-			for line in script.text.split("\n"):
-				if line.find("player.releaseUrl") < 0:
-					continue
-				desc_url = line[line.find("\"")+1 : line.rfind("\"")]
-				break
-			if desc_url is not None:
-				break
-		if desc_url is None:
-			raise Exception("Failed to get JSON URL for " + self.title)
+		print VIDEO_URL % self.video_id
+		meta_video = doc.xpath("//meta[@property='og:video']")[0]
+		swf_url = meta_video.attrib["content"]
+		swf_url_qs = urlparse.parse_qs(urlparse.urlparse(swf_url).query)
+		desc_url = swf_url_qs["releaseUrl"][0]
 
-		desc_url = append_to_qs(desc_url, {"manifest": None})
 		doc = grab_xml(desc_url, 0)
 		video = doc.xpath("//smil:video", namespaces=NS)[0]
 		video_url = video.attrib["src"]
