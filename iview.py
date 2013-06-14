@@ -11,9 +11,6 @@ HASH_URL = BASE_URL + "images/iview.jpg"
 NS = {
 	"auth": "http://www.abc.net.au/iView/Services/iViewHandshaker",
 }
-PLAYPATH_PREFIXES = {
-	"akamai": "flash/playback/_definst_/",
-}
 
 class IviewNode(Node):
 	def __init__(self, title, parent, params, vpath):
@@ -24,13 +21,12 @@ class IviewNode(Node):
 
 	def download(self):
 		auth_doc = grab_xml(self.params["auth"], 0)
-		host = auth_doc.xpath("//auth:host/text()", namespaces=NS)[0]
-		playpath_prefix = PLAYPATH_PREFIXES.get(host.lower(), "")
-		vbase = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
+###		vbase = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
 		token = auth_doc.xpath("//auth:token/text()", namespaces=NS)[0]
+		vbase = "rtmp://cp53909.edgefcs.net/ondemand"
 		vbase += "?auth=" + token
 		vpath, ext = self.vpath.rsplit(".", 1)
-		vpath = playpath_prefix + vpath
+		vpath = "flash/playback/_definst_/" + vpath
 		vpath = ext + ":" + vpath
 		filename = self.title + "." + ext
 		return download_rtmp(filename, vbase, vpath, HASH_URL)
