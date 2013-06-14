@@ -31,7 +31,6 @@ class SbsNode(Node):
 
 	def download(self):
 		doc = grab_html(VIDEO_URL % self.video_id, 0)
-		print VIDEO_URL % self.video_id
 		meta_video = doc.xpath("//meta[@property='og:video']")[0]
 		swf_url = meta_video.attrib["content"]
 		swf_url_qs = urlparse.parse_qs(urlparse.urlparse(swf_url).query)
