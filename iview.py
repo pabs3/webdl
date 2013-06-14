@@ -2,7 +2,6 @@
 # vim:ts=4:sts=4:sw=4:noet
 
 from common import grab_xml, grab_json, download_rtmp, Node
-from datetime import datetime
 import itertools
 
 BASE_URL = "http://www.abc.net.au/iview/"
@@ -17,20 +16,20 @@ class IviewNode(Node):
 		Node.__init__(self, title, parent)
 		self.params = params
 		self.vpath = vpath
+		self.filename = self.title + "." + vpath.rsplit(".", 1)[1]
 		self.can_download = True
 
 	def download(self):
 		auth_doc = grab_xml(self.params["auth"], 0)
-###		vbase = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
+		server = self.params["server_streaming"]
 		token = auth_doc.xpath("//auth:token/text()", namespaces=NS)[0]
-		vbase = "rtmp://cp53909.edgefcs.net/ondemand"
-		vbase += "?auth=" + token
+		playpath = auth_doc.xpath("//auth:path/text()", namespaces=NS)[0]
+		if playpath == "playback/_definst_/":
+			playpath = "flash/" + playpath
+		vbase = server + "?auth=" + token
 		vpath, ext = self.vpath.rsplit(".", 1)
-		vpath = "flash/playback/_definst_/" + vpath
-		vpath = ext + ":" + vpath
-		filename = self.title + "." + ext
-		return download_rtmp(filename, vbase, vpath, HASH_URL)
-
+		vpath = ext + ":" + playpath + vpath
+		return download_rtmp(self.filename, vbase, vpath, HASH_URL)
 
 class IviewSeriesNode(Node):
 	def __init__(self, title, parent, params, series_id):
