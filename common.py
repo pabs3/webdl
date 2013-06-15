@@ -27,7 +27,7 @@ except ImportError:
 	pass
 
 CACHE_DIR = os.path.expanduser("~/.cache/webdl")
-USER_AGENT = "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:15.0) Gecko/20100101 Firefox/15.0.1"
+USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
 
 class Node(object):
 	def __init__(self, title, parent=None):
