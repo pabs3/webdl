@@ -66,7 +66,7 @@ class SbsNavNode(Node):
 		SbsNode(title, self, video_id)
 
 class SbsRootNode(Node):
-	def __init__(self, parent=None):
+	def __init__(self, parent):
 		Node.__init__(self, "SBS", parent)
 
 	def fill_children(self):

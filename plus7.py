@@ -117,7 +117,7 @@ class Plus7Series(Node):
 			Plus7Node(title, self, BASE + url)
 
 class Plus7Root(Node):
-	def __init__(self, parent=None):
+	def __init__(self, parent):
 		Node.__init__(self, "Yahoo Plus7", parent)
 
 	def fill_children(self):
