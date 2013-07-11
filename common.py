@@ -112,6 +112,12 @@ def urlopen(url, max_age):
 
 	return open(filename)
 
+def grab_text(url, max_age):
+	f = urlopen(url, max_age)
+	text = f.read().decode("utf-8")
+	f.close()
+	return text
+
 def grab_html(url, max_age):
 	f = urlopen(url, max_age)
 	doc = html.parse(f, html.HTMLParser(encoding="utf-8", recover=True))

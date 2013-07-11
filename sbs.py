@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # vim:ts=4:sts=4:sw=4:noet
 
-from common import grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node, append_to_qs
+from common import grab_text, grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node, append_to_qs
 
 import collections
 import urlparse
@@ -34,7 +34,11 @@ class SbsNode(Node):
 		meta_video = doc.xpath("//meta[@property='og:video']")[0]
 		swf_url = meta_video.attrib["content"]
 		swf_url_qs = urlparse.parse_qs(urlparse.urlparse(swf_url).query)
-		desc_url = swf_url_qs["releaseUrl"][0]
+		desc_url = swf_url_qs["v"][0]
+
+		doc = grab_text(desc_url, 0)
+		doc_qs = urlparse.parse_qs(doc)
+		desc_url = doc_qs["releaseUrl"][0]
 
 		doc = grab_xml(desc_url, 0)
 		video = doc.xpath("//smil:video", namespaces=NS)[0]
