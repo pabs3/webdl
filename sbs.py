@@ -41,6 +41,10 @@ class SbsNode(Node):
 		desc_url = doc_qs["releaseUrl"][0]
 
 		doc = grab_xml(desc_url, 0)
+		error = doc.xpath("//smil:param[@name='exception']/@value", namespaces=NS)
+		if error:
+			raise Exception("Error downloading, SBS said: " + error[0])
+
 		video = doc.xpath("//smil:video", namespaces=NS)[0]
 		video_url = video.attrib["src"]
 		ext = urlparse.urlsplit(video_url).path.rsplit(".", 1)[1]
