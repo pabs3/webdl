@@ -47,6 +47,8 @@ class SbsNode(Node):
 
 		video = doc.xpath("//smil:video", namespaces=NS)[0]
 		video_url = video.attrib["src"]
+		if not video_url:
+			raise Exception("Unsupported video '%s': %s" % (self.title, desc_url))
 		ext = urlparse.urlsplit(video_url).path.rsplit(".", 1)[1]
 		filename = self.title + "." + ext
 		video_url = append_to_qs(video_url, VIDEO_MAGIC)
