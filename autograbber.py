@@ -6,9 +6,19 @@ import fnmatch
 import os
 import sys
 
+DOWNLOAD_HISTORY_FILES = [
+	".downloaded_auto.txt",
+	"downloaded_auto.txt",
+]
+
 class DownloadList(object):
-	def __init__(self, filename):
+	def __init__(self):
 		self.seen_list = set()
+		for filename in DOWNLOAD_HISTORY_FILES:
+			if os.path.isfile(filename):
+				break
+		else:
+			filename = DOWNLOAD_HISTORY_FILES[0]
 		try:
 			self.f = open(filename, "r")
 			for line in self.f:
@@ -48,7 +58,7 @@ def match(download_list, node, pattern, count=0):
 def main(destdir, patternfile):
 	os.chdir(destdir)
 	node = load_root_node()
-	download_list = DownloadList("downloaded_auto.txt")
+	download_list = DownloadList()
 
 	for line in open(patternfile):
 		search = line.strip().split("/")
