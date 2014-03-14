@@ -32,15 +32,19 @@ class IviewNode(Node):
 		return download_rtmp(self.filename, vbase, vpath, HASH_URL)
 
 class IviewSeriesNode(Node):
-	def __init__(self, title, parent, params, series_id):
+	def __init__(self, title, parent, params, series_ids):
 		Node.__init__(self, title, parent)
 		self.params = params
-		self.series_id = series_id
+		self.series_ids = series_ids
 
 	def fill_children(self):
-		series_doc = grab_json(self.params["api"] + "series=" + self.series_id, 3600)
+		for series_id in self.series_ids:
+			self.fill_children_for_id(series_id)
+
+	def fill_children_for_id(self, series_id):
+		series_doc = grab_json(self.params["api"] + "series=" + series_id, 3600)
 		for episode_list in series_doc:
-			if episode_list["a"] == self.series_id:
+			if episode_list["a"] == series_id:
 				episode_list = episode_list["f"]
 				break
 		else:
@@ -56,16 +60,22 @@ class IviewSeriesNode(Node):
 			IviewNode(episode_title, self, self.params, vpath)
 
 class SeriesInfo(object):
-	def __init__(self, title, sid, categories):
+	def __init__(self, title):
 		self.title = title
-		self.sid = sid
-		self.categories = categories
+		self.series_ids = set()
+		self.categories = set()
+
+	def add_series_id(self, series_id):
+		self.series_ids.add(series_id)
+
+	def add_categories(self, categories):
+		self.categories.update(categories)
 
 class IviewRootNode(Node):
 	def __init__(self, parent):
 		Node.__init__(self, "ABC iView", parent)
 		self.params = {}
-		self.series_info = []
+		self.series_info = {}
 		self.categories_map = {}
 
 	def load_params(self):
@@ -81,8 +91,12 @@ class IviewRootNode(Node):
 			title = series["b"].replace("&amp;", "&")
 			sid = series["a"]
 			categories = series["e"].split()
-			info = SeriesInfo(title, sid, categories)
-			self.series_info.append(info)
+			info = self.series_info.get(title, None)
+			if not info:
+				info = SeriesInfo(title)
+				self.series_info[title] = info
+			info.add_categories(categories)
+			info.add_series_id(sid)
 
 	def load_categories(self):
 		categories_doc = grab_xml(BASE_URL + self.params["categories"], 24*3600)
@@ -104,11 +118,11 @@ class IviewRootNode(Node):
 
 	def link_series(self):
 		# Create a duplicate within each category for each series
-		for s in self.series_info:
+		for s in self.series_info.itervalues():
 			for cid in s.categories:
 				parent = self.categories_map.get(cid)
 				if parent:
-					IviewSeriesNode(s.title, parent, self.params, s.sid)
+					IviewSeriesNode(s.title, parent, self.params, s.series_ids)
 
 	def fill_children(self):
 		self.load_params()
