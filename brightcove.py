@@ -63,7 +63,6 @@ class BrightcoveRootNode(Node):
 		return node
 
 	def fill_children(self):
-		print "Notice! Brightcove API (Ch9 & Ch10) support is still experimental."
 		page_number = 0
 		while page_number < 100:
 			sys.stdout.write(".")
