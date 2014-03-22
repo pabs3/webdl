@@ -118,7 +118,7 @@ class Plus7Series(Node):
 
 class Plus7Root(Node):
 	def __init__(self, parent):
-		Node.__init__(self, "Yahoo Plus7", parent)
+		Node.__init__(self, "Yahoo Plus7 (broken!)", parent)
 
 	def fill_children(self):
 		doc = grab_html(BROWSE, 3600)
