@@ -235,10 +235,9 @@ def download_urllib(filename, url, referrer=None):
 			sys.stdout.write(".")
 			sys.stdout.flush()
 		print
-		convert_filename(filename)
-		return True
 	except KeyboardInterrupt:
 		print "\nCancelled", url
+		return False
 	finally:
 		try:
 			src.close()
@@ -248,7 +247,9 @@ def download_urllib(filename, url, referrer=None):
 			dst.close()
 		except:
 			pass
-	return False
+
+	convert_filename(filename)
+	return True
 
 def natural_sort(l, key=None):
 	ignore_list = ["a", "the"]
