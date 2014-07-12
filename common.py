@@ -174,7 +174,7 @@ def convert_flv_mp4(orig_filename):
         os.rename(orig_filename, flv_filename)
     print "Converting %s to mp4" % flv_filename
     cmd = [
-        "ffmpeg",
+        "avconv",
         "-i", flv_filename,
         "-acodec", "copy",
         "-vcodec", "copy",
@@ -188,7 +188,7 @@ def convert_flv_mp4(orig_filename):
         if abs(flv_size - mp4_size) < 0.05 * flv_size:
             os.unlink(flv_filename)
         else:
-            print >>sys.stderr, "The size of", mp4_filename, "is suspicious, did ffmpeg fail?"
+            print >>sys.stderr, "The size of", mp4_filename, "is suspicious, did avconv fail?"
     except Exception, e:
         print "Conversion failed", e
 
