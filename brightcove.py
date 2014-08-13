@@ -103,9 +103,9 @@ class Ch9RootNode(BrightcoveRootNode):
 
     def get_video_title(self, video_desc):
         title = video_desc["name"]
-        series = video_desc["customFields"]["series"]
         season = video_desc["customFields"].get("season", "")
         episode = video_desc["customFields"].get("episode", "1").rjust(2, "0")
+        series = self.get_series_name(video_desc)
 
         if re.match(R"ep(isode)?\s*[0-9]+\s*:", title.lower()):
             title = title.split(":", 1)[1].strip()
@@ -119,7 +119,10 @@ class Ch9RootNode(BrightcoveRootNode):
         return title
 
     def get_series_name(self, video_desc):
-        return video_desc["customFields"]["series"]
+        series = video_desc["customFields"].get("series", None)
+        if not series:
+            series = video_desc["name"]
+        return series
 
     def get_all_videos_url(self, page_number):
         return append_to_qs(BRIGHTCOVE_API, {
