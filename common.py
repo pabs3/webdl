@@ -173,14 +173,8 @@ def convert_flv_mp4(orig_filename):
     if orig_filename != flv_filename:
         os.rename(orig_filename, flv_filename)
     print "Converting %s to mp4" % flv_filename
-    cmd = [
-        "avconv",
-        "-i", flv_filename,
-        "-acodec", "copy",
-        "-vcodec", "copy",
-        mp4_filename,
-    ]
-    if not exec_subprocess(cmd):
+    if not avconv_remux(flv_filename, mp4_filename):
+        # failed, error has already been logged
         return
     try:
         flv_size = os.stat(flv_filename).st_size
@@ -191,6 +185,16 @@ def convert_flv_mp4(orig_filename):
             print >>sys.stderr, "The size of", mp4_filename, "is suspicious, did avconv fail?"
     except Exception, e:
         print "Conversion failed", e
+
+def avconv_remux(infile, outfile):
+    cmd = [
+        "avconv",
+        "-i", infile,
+        "-acodec", "copy",
+        "-vcodec", "copy",
+        outfile,
+    ]
+    return exec_subprocess(cmd)
 
 def convert_filename(filename):
     if os.path.splitext(filename.lower())[1] in (".mp4", ".flv"):
@@ -247,6 +251,99 @@ def download_urllib(filename, url, referrer=None):
             pass
 
     convert_filename(filename)
+    return True
+
+def download_hls_get_stream(url, hack_url_func):
+    url = hack_url_func(url)
+
+    def parse_bandwidth(line):
+        params = line.split(":", 1)[1].split(",")
+        for kv in params:
+            k, v = kv.split("=", 1)
+            if k == "BANDWIDTH":
+                return int(v)
+        return 0
+
+    m3u8 = grab_text(url, 0)
+    best_bandwidth = None
+    best_url = None
+    for line in m3u8.split("\n"):
+        if line.startswith("#EXT-X-STREAM-INF:"):
+            bandwidth = parse_bandwidth(line)
+            if best_bandwidth is None or bandwidth > best_bandwidth:
+                best_bandwidth = bandwidth
+                best_url = None
+        elif not line.startswith("#"):
+            if best_url is None:
+                best_url = line.strip()
+
+    if not best_url:
+        raise Exception("Failed to find best stream for HLS: " + url)
+
+    return best_url
+
+def download_hls_segments(tmpdir, url, hack_url_func):
+    m3u8 = grab_text(url, 0)
+    result = []
+
+    local_m3u8_filename = tmpdir + "/index.m3u8"
+    local_m3u8 = open(local_m3u8_filename, "w")
+
+    i = 1
+    for line in m3u8.split("\n"):
+        if not line.strip():
+            continue
+        if line.startswith("#"):
+            local_m3u8.write(line + "\n")
+            continue
+
+        outfile = "%s/segment_%d.ts" % (tmpdir, i)
+        i += 1
+        local_m3u8.write(outfile + "\n")
+        download_hls_fetch_segment(line, outfile)
+        sys.stdout.write(".")
+        sys.stdout.flush()
+
+    sys.stdout.write("\n")
+
+    local_m3u8.close()
+    return local_m3u8_filename
+
+def download_hls_fetch_segment(segment, outfile):
+    try:
+        src = _urlopen(segment)
+        dst = open(outfile, "w")
+        shutil.copyfileobj(src, dst)
+    finally:
+        try:
+            src.close()
+        except:
+            pass
+        try:
+            dst.close()
+        except:
+            pass
+
+def download_hls(filename, m3u8_master_url, hack_url_func=None):
+    if hack_url_func is None:
+        hack_url_func = lambda url: url
+
+    tmpdir = tempfile.mkdtemp(prefix="webdl-hls")
+    filename = sanify_filename(filename)
+
+    print "Downloading: %s" % filename
+
+    try:
+        best_stream_url = download_hls_get_stream(m3u8_master_url, hack_url_func)
+        local_m3u8 = download_hls_segments(tmpdir, best_stream_url, hack_url_func)
+        avconv_remux(local_m3u8, filename)
+        return False
+    except KeyboardInterrupt:
+        print "\nCancelled", m3u8_master_url
+        return False
+    finally:
+        shutil.rmtree(tmpdir)
+
     return True
 
 def natural_sort(l, key=None):
