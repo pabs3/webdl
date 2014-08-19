@@ -290,6 +290,7 @@ def download_hls_segments(tmpdir, url, hack_url_func):
     local_m3u8 = open(local_m3u8_filename, "w")
 
     i = 1
+    fail_if_not_last_segment = None
     for line in m3u8.split("\n"):
         if not line.strip():
             continue
@@ -297,10 +298,17 @@ def download_hls_segments(tmpdir, url, hack_url_func):
             local_m3u8.write(line + "\n")
             continue
 
+        if fail_if_not_last_segment:
+            raise e
+
         outfile = "%s/segment_%d.ts" % (tmpdir, i)
         i += 1
+        try:
+            download_hls_fetch_segment(hack_url_func(line), outfile)
+        except urllib2.HTTPError, e:
+            fail_if_not_last_segment = e
+            continue
         local_m3u8.write(outfile + "\n")
-        download_hls_fetch_segment(line, outfile)
         sys.stdout.write(".")
         sys.stdout.flush()
 
@@ -314,6 +322,9 @@ def download_hls_fetch_segment(segment, outfile):
         src = _urlopen(segment)
         dst = open(outfile, "w")
         shutil.copyfileobj(src, dst)
+    except:
+        print >>sys.stderr, "Failed to fetch", segment
+        raise
     finally:
         try:
             src.close()
@@ -337,14 +348,12 @@ def download_hls(filename, m3u8_master_url, hack_url_func=None):
         best_stream_url = download_hls_get_stream(m3u8_master_url, hack_url_func)
         local_m3u8 = download_hls_segments(tmpdir, best_stream_url, hack_url_func)
         avconv_remux(local_m3u8, filename)
-        return False
+        return True
     except KeyboardInterrupt:
         print "\nCancelled", m3u8_master_url
         return False
     finally:
         shutil.rmtree(tmpdir)
-
-    return True
 
 def natural_sort(l, key=None):
     ignore_list = ["a", "the"]
