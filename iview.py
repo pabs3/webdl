@@ -44,7 +44,7 @@ class IviewEpisodeNode(Node):
         video_url = self.find_hls_url(info["playlist"])
         token, token_hostname= self.get_auth_details()
         hack_url = lambda url: self.hack_url_auth_token(url, token, token_hostname)
-        download_hls(self.filename, video_url, hack_url)
+        return download_hls(self.filename, video_url, hack_url)
 
 
 class IviewIndexNode(Node):
