@@ -14,7 +14,7 @@ class IviewEpisodeNode(Node):
     def __init__(self, title, parent, video_key):
         Node.__init__(self, title, parent)
         self.video_key = video_key
-        self.filename = title + ".mp4"
+        self.filename = title + ".ts"
         self.can_download = True
 
     def find_hls_url(self, playlist):

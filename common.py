@@ -166,27 +166,8 @@ def exec_subprocess(cmd):
     return False
 
 
-def convert_flv_mp4(orig_filename):
-    basename = os.path.splitext(orig_filename)[0]
-    flv_filename = basename + ".flv"
-    mp4_filename = basename + ".mp4"
-    if orig_filename != flv_filename:
-        os.rename(orig_filename, flv_filename)
-    print "Converting %s to mp4" % flv_filename
-    if not avconv_remux(flv_filename, mp4_filename):
-        # failed, error has already been logged
-        return
-    try:
-        flv_size = os.stat(flv_filename).st_size
-        mp4_size = os.stat(mp4_filename).st_size
-        if abs(flv_size - mp4_size) < 0.05 * flv_size:
-            os.unlink(flv_filename)
-        else:
-            print >>sys.stderr, "The size of", mp4_filename, "is suspicious, did avconv fail?"
-    except Exception, e:
-        print "Conversion failed", e
-
 def avconv_remux(infile, outfile):
+    print "Converting %s to mp4" % infile
     cmd = [
         "avconv",
         "-i", infile,
@@ -194,15 +175,38 @@ def avconv_remux(infile, outfile):
         "-vcodec", "copy",
         outfile,
     ]
-    return exec_subprocess(cmd)
+    if not exec_subprocess(cmd):
+        # failed, error has already been logged
+        return False
+    try:
+        flv_size = os.stat(infile).st_size
+        mp4_size = os.stat(outfile).st_size
+        if abs(flv_size - mp4_size) < 0.1 * flv_size:
+            os.unlink(infile)
+            return True
+        else:
+            print >>sys.stderr, "The size of", outfile, "is suspicious, did avconv fail?"
+            return False
+    except Exception, e:
+        print >>sys.stderr, "Conversion failed", e
+        return False
 
-def convert_filename(filename):
-    if os.path.splitext(filename.lower())[1] in (".mp4", ".flv"):
-        f = open(filename)
+def convert_to_mp4(filename):
+    with open(filename) as f:
         fourcc = f.read(4)
-        f.close()
-        if fourcc == "FLV\x01":
-            convert_flv_mp4(filename)
+    basename, ext = os.path.splitext(filename)
+
+    if ext == ".mp4" and fourcc == "FLV\x01":
+        os.rename(filename, basename + ".flv")
+        ext = ".flv"
+        filename = basename + ext
+
+    if ext in (".flv", ".ts"):
+        filename_mp4 = basename + ".mp4"
+        return avconv_remux(filename, filename_mp4)
+
+    return ext == ".mp4"
+
 
 def download_rtmp(filename, vbase, vpath, hash_url=None):
     filename = sanify_filename(filename)
@@ -218,8 +222,7 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
     if hash_url is not None:
         cmd += ["--swfVfy", hash_url]
     if exec_subprocess(cmd):
-        convert_filename(filename)
-        return True
+        return convert_to_mp4(filename)
     else:
         return False
 
@@ -250,12 +253,9 @@ def download_urllib(filename, url, referrer=None):
         except:
             pass
 
-    convert_filename(filename)
-    return True
+    return convert_to_mp4(filename)
 
-def download_hls_get_stream(url, hack_url_func):
-    url = hack_url_func(url)
-
+def download_hls_get_stream(url):
     def parse_bandwidth(line):
         params = line.split(":", 1)[1].split(",")
         for kv in params:
@@ -282,56 +282,36 @@ def download_hls_get_stream(url, hack_url_func):
 
     return best_url
 
-def download_hls_segments(tmpdir, url, hack_url_func):
+def download_hls_segments(outf, url):
     m3u8 = grab_text(url, 0)
-    result = []
 
-    local_m3u8_filename = tmpdir + "/index.m3u8"
-    local_m3u8 = open(local_m3u8_filename, "w")
-
-    i = 1
     fail_if_not_last_segment = None
     for line in m3u8.split("\n"):
-        if not line.strip():
-            continue
-        if line.startswith("#"):
-            local_m3u8.write(line + "\n")
+        if not line.strip() or line.startswith("#"):
             continue
 
         if fail_if_not_last_segment:
             raise e
 
-        outfile = "%s/segment_%d.ts" % (tmpdir, i)
-        i += 1
         try:
-            download_hls_fetch_segment(hack_url_func(line), outfile)
+            download_hls_fetch_segment(outf, line)
         except urllib2.HTTPError, e:
             fail_if_not_last_segment = e
             continue
-        local_m3u8.write(outfile + "\n")
         sys.stdout.write(".")
         sys.stdout.flush()
 
     sys.stdout.write("\n")
 
-    local_m3u8.close()
-    return local_m3u8_filename
-
-def download_hls_fetch_segment(segment, outfile):
+def download_hls_fetch_segment(outf, segment_url):
     try:
-        src = _urlopen(segment)
-        dst = open(outfile, "w")
-        shutil.copyfileobj(src, dst)
+        src = _urlopen(segment_url)
+        shutil.copyfileobj(src, outf)
     except:
-        print >>sys.stderr, "Failed to fetch", segment
         raise
     finally:
         try:
             src.close()
-        except:
-            pass
-        try:
-            dst.close()
         except:
             pass
 
@@ -340,20 +320,24 @@ def download_hls(filename, m3u8_master_url, hack_url_func=None):
         hack_url_func = lambda url: url
 
     tmpdir = tempfile.mkdtemp(prefix="webdl-hls")
-    filename = sanify_filename(filename)
 
     print "Downloading: %s" % filename
 
     try:
-        best_stream_url = download_hls_get_stream(m3u8_master_url, hack_url_func)
-        local_m3u8 = download_hls_segments(tmpdir, best_stream_url, hack_url_func)
-        avconv_remux(local_m3u8, filename)
-        return True
+        best_stream_url = download_hls_get_stream(hack_url_func(m3u8_master_url))
+        ts_file = open(filename, "w")
+        download_hls_segments(ts_file, hack_url_func(best_stream_url))
     except KeyboardInterrupt:
         print "\nCancelled", m3u8_master_url
         return False
     finally:
         shutil.rmtree(tmpdir)
+        try:
+            ts_file.close()
+        except:
+            pass
+
+    return convert_to_mp4(filename)
 
 def natural_sort(l, key=None):
     ignore_list = ["a", "the"]
