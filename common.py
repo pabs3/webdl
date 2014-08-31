@@ -316,12 +316,13 @@ def download_hls_fetch_segment(outf, segment_url):
             pass
 
 def download_hls(filename, m3u8_master_url, hack_url_func=None):
+    filename = sanify_filename(filename)
+    print "Downloading: %s" % filename
+
     if hack_url_func is None:
         hack_url_func = lambda url: url
 
     tmpdir = tempfile.mkdtemp(prefix="webdl-hls")
-
-    print "Downloading: %s" % filename
 
     try:
         best_stream_url = download_hls_get_stream(hack_url_func(m3u8_master_url))
