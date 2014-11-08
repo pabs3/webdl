@@ -166,15 +166,39 @@ def exec_subprocess(cmd):
     return False
 
 
-def avconv_remux(infile, outfile):
+def check_command_exists(cmd):
+    try:
+        subprocess.check_output(cmd)
+        return True
+    except Exception:
+        return False
+
+def generate_remux_cmd(infile, outfile):
+    if check_command_exists(["avconv", "--help"]):
+        return [
+            "avconv",
+            "-i", infile,
+            "-bsf:a", "aac_adtstoasc",
+            "-acodec", "copy",
+            "-vcodec", "copy",
+            outfile,
+        ]
+
+    if check_command_exists(["ffmpeg", "--help"]):
+        return [
+            "ffmpeg",
+            "-i", infile,
+            "-bsf:a", "aac_adtstoasc",
+            "-acodec", "copy",
+            "-vcodec", "copy",
+            outfile,
+        ]
+
+    raise Exception("You must install ffmpeg or libav-tools")
+
+def remux(infile, outfile):
     print "Converting %s to mp4" % infile
-    cmd = [
-        "avconv",
-        "-i", infile,
-        "-acodec", "copy",
-        "-vcodec", "copy",
-        outfile,
-    ]
+    cmd = generate_remux_cmd(infile, outfile)
     if not exec_subprocess(cmd):
         # failed, error has already been logged
         return False
@@ -203,7 +227,7 @@ def convert_to_mp4(filename):
 
     if ext in (".flv", ".ts"):
         filename_mp4 = basename + ".mp4"
-        return avconv_remux(filename, filename_mp4)
+        return remux(filename, filename_mp4)
 
     return ext == ".mp4"
 
