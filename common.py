@@ -24,7 +24,7 @@ try:
 except ImportError:
     pass
 
-CACHE_DIR = os.path.expanduser("~/.cache/webdl")
+CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "webdl")
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
 
 class Node(object):
