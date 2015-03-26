@@ -96,7 +96,7 @@ def urlopen(url, max_age):
             return open(filename)
 
     src = _urlopen(url)
-    dst = open(filename, "w")
+    dst = open(filename, "wb")
     try:
         shutil.copyfileobj(src, dst)
     except Exception, e:
@@ -255,7 +255,7 @@ def download_urllib(filename, url, referrer=None):
     print "Downloading: %s" % filename
     try:
         src = _urlopen(url, referrer)
-        dst = open(filename, "w")
+        dst = open(filename, "wb")
         while True:
             buf = src.read(1024*1024)
             if not buf:
@@ -350,7 +350,7 @@ def download_hls(filename, m3u8_master_url, hack_url_func=None):
 
     try:
         best_stream_url = download_hls_get_stream(hack_url_func(m3u8_master_url))
-        ts_file = open(filename, "w")
+        ts_file = open(filename, "wb")
         download_hls_segments(ts_file, hack_url_func(best_stream_url))
     except KeyboardInterrupt:
         print "\nCancelled", m3u8_master_url
