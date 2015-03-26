@@ -6,7 +6,7 @@ import sys
 def choose(options, allow_multi):
     reverse_map = {}
     for i, (key, value) in enumerate(options):
-        print "%3d) %s" % (i+1, key)
+        print "%3d) %s" % (i+1, key.encode('utf-8'))
         reverse_map[i+1] = value
     print "  0) Back"
     while True:
