@@ -33,7 +33,7 @@ class IviewEpisodeNode(Node):
         token_hostname = urlparse.urlparse(token_url).netloc
         return token, token_hostname
 
-    def hack_url_auth_token(self, video_url, token, token_hostname):
+    def add_auth_token_to_url(self, video_url, token, token_hostname):
         parsed_url = urlparse.urlparse(video_url)
         hacked_url = parsed_url._replace(netloc=token_hostname, query="hdnea=" + token)
         video_url = urlparse.urlunparse(hacked_url)
@@ -43,8 +43,8 @@ class IviewEpisodeNode(Node):
         info = grab_json(API_URL + "/programs/" + self.video_key, 3600)
         video_url = self.find_hls_url(info["playlist"])
         token, token_hostname= self.get_auth_details()
-        hack_url = lambda url: self.hack_url_auth_token(url, token, token_hostname)
-        return download_hls(self.filename, video_url, hack_url)
+        video_url = self.add_auth_token_to_url(video_url, token, token_hostname)
+        return download_hls(self.filename, video_url)
 
 
 class IviewIndexNode(Node):

@@ -247,6 +247,21 @@ def download_hds(filename, video_url, pvswf=None):
     else:
         return False
 
+def download_hls(filename, video_url):
+    filename = sanify_filename(filename)
+    video_url = video_url.replace("http://", "hlsvariant://")
+    print "Downloading: %s" % filename
+    cmd = [
+        "livestreamer",
+        "-o", filename,
+        video_url,
+        "best",
+    ]
+    if exec_subprocess(cmd):
+        return convert_to_mp4(filename)
+    else:
+        return False
+
 def download_rtmp(filename, vbase, vpath, hash_url=None):
     filename = sanify_filename(filename)
     print "Downloading: %s" % filename
@@ -264,91 +279,6 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
         return convert_to_mp4(filename)
     else:
         return False
-
-def download_hls_get_stream(url):
-    def parse_bandwidth(line):
-        params = line.split(":", 1)[1].split(",")
-        for kv in params:
-            k, v = kv.split("=", 1)
-            if k == "BANDWIDTH":
-                return int(v)
-        return 0
-
-    m3u8 = grab_text(url, 0)
-    best_bandwidth = None
-    best_url = None
-    for line in m3u8.split("\n"):
-        if line.startswith("#EXT-X-STREAM-INF:"):
-            bandwidth = parse_bandwidth(line)
-            if best_bandwidth is None or bandwidth > best_bandwidth:
-                best_bandwidth = bandwidth
-                best_url = None
-        elif not line.startswith("#"):
-            if best_url is None:
-                best_url = line.strip()
-
-    if not best_url:
-        raise Exception("Failed to find best stream for HLS: " + url)
-
-    return best_url
-
-def download_hls_segments(outf, url):
-    m3u8 = grab_text(url, 0)
-
-    fail_if_not_last_segment = None
-    for line in m3u8.split("\n"):
-        if not line.strip() or line.startswith("#"):
-            continue
-
-        if fail_if_not_last_segment:
-            raise e
-
-        try:
-            download_hls_fetch_segment(outf, line)
-        except urllib2.HTTPError, e:
-            fail_if_not_last_segment = e
-            continue
-        sys.stdout.write(".")
-        sys.stdout.flush()
-
-    sys.stdout.write("\n")
-
-def download_hls_fetch_segment(outf, segment_url):
-    try:
-        src = _urlopen(segment_url)
-        shutil.copyfileobj(src, outf)
-    except:
-        raise
-    finally:
-        try:
-            src.close()
-        except:
-            pass
-
-def download_hls(filename, m3u8_master_url, hack_url_func=None):
-    filename = sanify_filename(filename)
-    print "Downloading: %s" % filename
-
-    if hack_url_func is None:
-        hack_url_func = lambda url: url
-
-    tmpdir = tempfile.mkdtemp(prefix="webdl-hls")
-
-    try:
-        best_stream_url = download_hls_get_stream(hack_url_func(m3u8_master_url))
-        ts_file = open(filename, "wb")
-        download_hls_segments(ts_file, hack_url_func(best_stream_url))
-    except KeyboardInterrupt:
-        print "\nCancelled", m3u8_master_url
-        return False
-    finally:
-        shutil.rmtree(tmpdir)
-        try:
-            ts_file.close()
-        except:
-            pass
-
-    return convert_to_mp4(filename)
 
 def natural_sort(l, key=None):
     ignore_list = ["a", "the"]
