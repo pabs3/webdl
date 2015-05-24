@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from common import grab_text, grab_html, grab_json, grab_xml, download_rtmp, download_urllib, Node, append_to_qs
+from common import grab_text, grab_html, grab_json, grab_xml, download_hds, Node, append_to_qs
 
 import collections
 import urlparse
@@ -48,10 +48,9 @@ class SbsNode(Node):
         video_url = video.attrib["src"]
         if not video_url:
             raise Exception("Unsupported video '%s': %s" % (self.title, desc_url))
-        ext = urlparse.urlsplit(video_url).path.rsplit(".", 1)[1]
-        filename = self.title + "." + ext
+        filename = self.title + ".flv"
         video_url = append_to_qs(video_url, VIDEO_MAGIC)
-        return download_urllib(filename, video_url, referrer=SWF_URL)
+        return download_hds(filename, video_url, pvswf=SWF_URL)
 
 class SbsNavNode(Node):
     def __init__(self, title, parent, url):

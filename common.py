@@ -232,6 +232,21 @@ def convert_to_mp4(filename):
     return ext == ".mp4"
 
 
+def download_hds(filename, video_url, pvswf=None):
+    filename = sanify_filename(filename)
+    video_url = video_url.replace("http://", "hds://")
+    print "Downloading: %s" % filename
+    cmd = [
+        "livestreamer",
+        "-o", filename,
+        "%s pvswf=%s" % (video_url, pvswf),
+        "best",
+    ]
+    if exec_subprocess(cmd):
+        return convert_to_mp4(filename)
+    else:
+        return False
+
 def download_rtmp(filename, vbase, vpath, hash_url=None):
     filename = sanify_filename(filename)
     print "Downloading: %s" % filename
@@ -249,35 +264,6 @@ def download_rtmp(filename, vbase, vpath, hash_url=None):
         return convert_to_mp4(filename)
     else:
         return False
-
-def download_urllib(filename, url, referrer=None):
-    filename = sanify_filename(filename)
-    print "Downloading: %s" % filename
-    try:
-        src = _urlopen(url, referrer)
-        dst = open(filename, "wb")
-        while True:
-            buf = src.read(1024*1024)
-            if not buf:
-                break
-            dst.write(buf)
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        print
-    except KeyboardInterrupt:
-        print "\nCancelled", url
-        return False
-    finally:
-        try:
-            src.close()
-        except:
-            pass
-        try:
-            dst.close()
-        except:
-            pass
-
-    return convert_to_mp4(filename)
 
 def download_hls_get_stream(url):
     def parse_bandwidth(line):
