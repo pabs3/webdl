@@ -234,12 +234,18 @@ def convert_to_mp4(filename):
 
 def download_hds(filename, video_url, pvswf=None):
     filename = sanify_filename(filename)
-    video_url = video_url.replace("http://", "hds://")
     print "Downloading: %s" % filename
+
+    video_url = video_url.replace("http://", "hds://")
+    if pvswf:
+        param = "%s pvswf=%s" % (video_url, pvswf)
+    else:
+        param = video_url
+
     cmd = [
         "livestreamer",
         "-o", filename,
-        "%s pvswf=%s" % (video_url, pvswf),
+        param,
         "best",
     ]
     if exec_subprocess(cmd):

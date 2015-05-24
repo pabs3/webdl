@@ -1,7 +1,7 @@
 import re
 import sys
 
-from common import grab_json, download_rtmp, Node, append_to_qs
+from common import grab_json, download_hls, Node, append_to_qs
 
 CH9_TOKEN = "ogxhPgSphIVa2hhxbi9oqtYwtg032io4B4-ImwddYliFWHqS0UfMEw.."
 CH10_TOKEN = "lWCaZyhokufjqe7H4TLpXwHSTnNXtqHxyMvoNOsmYA_GRaZ4zcwysw.."
@@ -21,28 +21,14 @@ class BrightcoveVideoNode(Node):
         desc_url = append_to_qs(BRIGHTCOVE_API, {
             "token": self.token,
             "command": "find_video_by_id",
-            "video_fields": "renditions",
+            "video_fields": "HLSURL",
             "video_id": self.video_id,
         })
-        print "video desc_url", desc_url
-
         doc = grab_json(desc_url, 3600)
+        video_url = doc["HLSURL"]
 
-        best_encoding_rate = 0
-        best_url = None
-        for item in doc['renditions']:
-            encoding_rate = item['encodingRate']
-            if encoding_rate > best_encoding_rate:
-                best_encoding_rate = encoding_rate
-                best_url = item['url']
-
-        if best_url is None:
-            raise Exception("Could not find video URL: " + desc_url)
-
-        vbase, vpath = best_url.split("&")
-        filename = self.title + ".mp4"
-        return download_rtmp(filename, vbase, vpath, HASH_URL)
-
+        filename = self.title + ".ts"
+        return download_hls(filename, video_url)
 
 class BrightcoveRootNode(Node):
     def __init__(self, title, parent, token):
