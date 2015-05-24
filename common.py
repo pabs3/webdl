@@ -57,9 +57,6 @@ def load_root_node():
     import sbs
     sbs.fill_nodes(root_node)
 
-###    import plus7
-###    plus7.fill_nodes(root_node)
-
     import brightcove
     brightcove.fill_nodes(root_node)
 
@@ -263,24 +260,6 @@ def download_hls(filename, video_url):
         video_url,
         "best",
     ]
-    if exec_subprocess(cmd):
-        return convert_to_mp4(filename)
-    else:
-        return False
-
-def download_rtmp(filename, vbase, vpath, hash_url=None):
-    filename = sanify_filename(filename)
-    print "Downloading: %s" % filename
-    if vpath.endswith(".flv"):
-        vpath = vpath[:-4]
-    cmd = [
-        "rtmpdump",
-        "-o", filename,
-        "-r", vbase,
-        "-y", vpath,
-    ]
-    if hash_url is not None:
-        cmd += ["--swfVfy", hash_url]
     if exec_subprocess(cmd):
         return convert_to_mp4(filename)
     else:

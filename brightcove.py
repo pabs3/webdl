@@ -7,7 +7,6 @@ CH9_TOKEN = "ogxhPgSphIVa2hhxbi9oqtYwtg032io4B4-ImwddYliFWHqS0UfMEw.."
 CH10_TOKEN = "lWCaZyhokufjqe7H4TLpXwHSTnNXtqHxyMvoNOsmYA_GRaZ4zcwysw.."
 
 BRIGHTCOVE_API = "http://api.brightcove.com/services/library?"
-HASH_URL = "http://admin.brightcove.com/viewer/us20130530.1140/connection/ExternalConnection_2.swf"
 
 
 class BrightcoveVideoNode(Node):
