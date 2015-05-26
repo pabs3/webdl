@@ -26,7 +26,8 @@ class BrightcoveVideoNode(Node):
         doc = grab_json(desc_url, 3600)
         video_url = doc["HLSURL"]
         if not video_url:
-            raise Exception("No HLS stream available for: " + self.title)
+            print("No HLS stream available for: " + self.title)
+            return False
 
         filename = self.title + ".ts"
         return download_hls(filename, video_url)
