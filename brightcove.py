@@ -2,7 +2,7 @@ import logging
 import re
 import sys
 
-from common import grab_json, download_hls, Node, append_to_qs
+from common import grab_json, download_hls, download_http, Node, append_to_qs
 
 CH9_TOKEN = "ogxhPgSphIVa2hhxbi9oqtYwtg032io4B4-ImwddYliFWHqS0UfMEw.."
 CH10_TOKEN = "lWCaZyhokufjqe7H4TLpXwHSTnNXtqHxyMvoNOsmYA_GRaZ4zcwysw.."
@@ -18,20 +18,54 @@ class BrightcoveVideoNode(Node):
         self.video_id = video_id
 
     def download(self):
+        f = None
+        try_streams = [self.try_widevine, self.try_hls]
+
+        while f is None and try_streams:
+            f = try_streams.pop()()
+
+        if f is None:
+            logging.error("No HLS or Widevine stream available for: %s", self.title)
+            return False
+
+        return f()
+
+    def try_hls(self):
         desc_url = append_to_qs(BRIGHTCOVE_API, {
             "token": self.token,
             "command": "find_video_by_id",
             "video_fields": "HLSURL",
             "video_id": self.video_id,
         })
+
         doc = grab_json(desc_url, 3600)
         video_url = doc["HLSURL"]
         if not video_url:
-            logging.error("No HLS stream available for: %s", self.title)
-            return False
+            return
 
         filename = self.title + ".ts"
-        return download_hls(filename, video_url)
+        return lambda: download_hls(filename, video_url)
+
+    def try_widevine(self):
+        desc_url = append_to_qs(BRIGHTCOVE_API, {
+            "token": self.token,
+            "command": "find_video_by_id",
+            "video_fields": "WVMRenditions",
+            "video_id": self.video_id,
+        })
+
+        doc = grab_json(desc_url, 3600)
+
+        renditions = doc["WVMRenditions"]
+        if not renditions:
+            return
+
+        best_rendition = sorted(renditions, key=lambda r: r["frameHeight"])[-1]
+        video_url = best_rendition["url"]
+        filename = self.title + ".ts"
+
+        return lambda: download_http(filename, video_url)
+
 
 class BrightcoveRootNode(Node):
     def __init__(self, title, parent, token):

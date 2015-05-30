@@ -280,6 +280,21 @@ def download_hls(filename, video_url):
     else:
         return False
 
+def download_http(filename, video_url):
+    filename = sanify_filename(filename)
+    logging.info("Downloading: %s", filename)
+
+    cmd = [
+        "curl",
+        "--fail", "--retry", "3",
+        "-o", filename,
+        video_url,
+    ]
+    if exec_subprocess(cmd):
+        return convert_to_mp4(filename)
+    else:
+        return False
+
 def natural_sort(l, key=None):
     ignore_list = ["a", "the"]
     def key_func(k):
