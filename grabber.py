@@ -1,17 +1,23 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 from common import load_root_node, natural_sort
-import sys
+
+# Python2 compatibility
+try:
+    raw_input
+except NameError:
+    raw_input = input
+
 
 def choose(options, allow_multi):
     reverse_map = {}
     for i, (key, value) in enumerate(options):
-        print "%3d) %s" % (i+1, key.encode('utf-8'))
+        print("%3d) %s" % (i+1, key))
         reverse_map[i+1] = value
-    print "  0) Back"
+    print("  0) Back")
     while True:
         try:
-            values = map(int, raw_input("Choose> ").split())
+            values = list(map(int, raw_input("Choose> ").split()))
             if len(values) == 0:
                 continue
             if 0 in values:
@@ -23,7 +29,7 @@ def choose(options, allow_multi):
                 if len(values) == 1:
                     return values[0]
         except (ValueError, IndexError):
-            print >>sys.stderr, "Invalid input, please try again"
+            print("Invalid input, please try again")
             pass
 
 def main():
@@ -54,5 +60,5 @@ if __name__ == "__main__":
     try:
         main()
     except (KeyboardInterrupt, EOFError):
-        print "\nExiting..."
+        print("\nExiting...")
 

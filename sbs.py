@@ -3,7 +3,7 @@
 from common import grab_text, grab_html, grab_json, grab_xml, download_hds, Node, append_to_qs
 
 import collections
-import urlparse
+import urllib.parse
 
 BASE = "http://www.sbs.com.au"
 VIDEO_MENU = BASE + "/ondemand/js/video-menu"
@@ -32,11 +32,11 @@ class SbsNode(Node):
         doc = grab_html(VIDEO_URL % self.video_id, 0)
         meta_video = doc.xpath("//meta[@property='og:video']")[0]
         swf_url = meta_video.attrib["content"]
-        swf_url_qs = urlparse.parse_qs(urlparse.urlparse(swf_url).query)
+        swf_url_qs = urllib.parse.parse_qs(urllib.parse.urlparse(swf_url).query)
         desc_url = swf_url_qs["v"][0]
 
         doc = grab_text(desc_url, 0)
-        doc_qs = urlparse.parse_qs(doc)
+        doc_qs = urllib.parse.parse_qs(doc)
         desc_url = doc_qs["releaseUrl"][0]
 
         doc = grab_xml(desc_url, 0)
@@ -91,7 +91,7 @@ class SbsRootNode(Node):
             SbsNavNode(name, parent, url)
 
     def fill_category(self, parent, cat_data):
-        if not cat_data.has_key("children"):
+        if "children" not in cat_data:
             name = cat_data["name"]
             self.create_nav_node(name, parent, cat_data, "url")
             return

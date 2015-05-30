@@ -1,5 +1,5 @@
+import logging
 import subprocess
-import sys
 
 
 def detect_gnome():
@@ -60,8 +60,8 @@ def configure_socks(host, port):
     try:
         import socks, socket
     except ImportError:
-        print >>sys.stderr, "Failed to use configured SOCKS proxy:", host, port
-        print >>sys.stderr, "Try installing SocksiPy: http://socksipy.sf.net"
+        logging.error("Failed to use configured SOCKS proxy: %s:%s", host, port)
+        logging.error("Try installing SocksiPy: http://socksipy.sf.net")
         return False
 
     socket.socket = socks.socksocket
@@ -80,7 +80,7 @@ def try_autosocks():
         host, port = None, None
         try:
             host, port = func()
-        except Exception, e:
+        except Exception as e:
             pass
         if host is not None and port is not None:
             return configure_socks(host, port)

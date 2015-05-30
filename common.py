@@ -1,21 +1,19 @@
-from lxml import etree, html
-import cookielib
+import python2_compat
+
+import hashlib
+import http.cookiejar
 import json
-try:
-    import hashlib
-except ImportError:
-    import md5 as hashlib
+import logging
+import lxml.etree
+import lxml.html
 import os
 import re
 import shutil
 import signal
 import subprocess
-import sys
-import tempfile
 import time
-import urllib
-import urllib2
-import urlparse
+import urllib.parse
+import urllib.request
 
 
 try:
@@ -24,8 +22,19 @@ try:
 except ImportError:
     pass
 
-CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")), "webdl")
+
+logging.basicConfig(
+    format = "%(levelname)s %(message)s",
+    level = logging.INFO if os.environ.get("DEBUG", None) is None else logging.DEBUG,
+)
+
+CACHE_DIR = os.path.join(
+    os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
+    "webdl"
+)
+
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
+
 
 class Node(object):
     def __init__(self, title, parent=None):
@@ -64,39 +73,42 @@ def load_root_node():
 
 valid_chars = frozenset("-_.()!@#%^ abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
 def sanify_filename(filename):
-    filename = filename.encode("ascii", "ignore")
     filename = "".join(c for c in filename if c in valid_chars)
+    assert len(filename) > 0
     return filename
 
-cookiejar = cookielib.CookieJar()
-urlopener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookiejar))
+cookiejar = http.cookiejar.CookieJar()
+urlopener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookiejar))
 def _urlopen(url, referrer=None):
-    req = urllib2.Request(url)
+    req = urllib.request.Request(url)
     req.add_header("User-Agent", USER_AGENT)
     if referrer:
         req.add_header("Referer", referrer)
     return urlopener.open(req)
 
 def urlopen(url, max_age):
-### print url
+    logging.debug("urlopen(%r, %r)", url, max_age)
+
     if not os.path.isdir(CACHE_DIR):
         os.makedirs(CACHE_DIR)
 
     if max_age <= 0:
         return _urlopen(url)
 
-    filename = hashlib.md5(url).hexdigest()
+    filename = hashlib.md5(url.encode("utf-8")).hexdigest()
     filename = os.path.join(CACHE_DIR, filename)
     if os.path.exists(filename):
         file_age = int(time.time()) - os.path.getmtime(filename)
         if file_age < max_age:
-            return open(filename)
+            logging.debug("loading from cache: %s", filename)
+            return open(filename, "rb")
 
+    logging.debug("downloading: %s -> %s", url, filename)
     src = _urlopen(url)
     dst = open(filename, "wb")
     try:
         shutil.copyfileobj(src, dst)
-    except Exception, e:
+    except Exception as e:
         try:
             os.unlink(filename)
         except OSError:
@@ -105,7 +117,7 @@ def urlopen(url, max_age):
     src.close()
     dst.close()
 
-    return open(filename)
+    return open(filename, "rb")
 
 def grab_text(url, max_age):
     f = urlopen(url, max_age)
@@ -115,45 +127,47 @@ def grab_text(url, max_age):
 
 def grab_html(url, max_age):
     f = urlopen(url, max_age)
-    doc = html.parse(f, html.HTMLParser(encoding="utf-8", recover=True))
+    doc = lxml.html.parse(f, lxml.html.HTMLParser(encoding="utf-8", recover=True))
     f.close()
     return doc
 
 def grab_xml(url, max_age):
     f = urlopen(url, max_age)
-    doc = etree.parse(f, etree.XMLParser(encoding="utf-8", recover=True))
+    doc = lxml.etree.parse(f, lxml.etree.XMLParser(encoding="utf-8", recover=True))
     f.close()
     return doc
 
 def grab_json(url, max_age, skip_assignment=False, skip_function=False):
     f = urlopen(url, max_age)
+    text = f.read().decode("utf-8")
+
     if skip_assignment:
-        text = f.read()
         pos = text.find("=")
-        doc = json.loads(text[pos+1:])
+        text = text[pos+1:]
+
     elif skip_function:
-        text = f.read()
         pos = text.find("(")
         rpos = text.rfind(")")
-        doc = json.loads(text[pos+1:rpos])
-    else:
-        doc = json.load(f)
+        text = text[pos+1:rpos]
+
+    doc = json.loads(text)
     f.close()
     return doc
 
 def exec_subprocess(cmd):
+    logging.debug("Executing: %s", cmd)
     try:
         p = subprocess.Popen(cmd)
         ret = p.wait()
         if ret != 0:
-            print >>sys.stderr, cmd[0], "exited with error code:", ret
+            logging.error("%s exited with error code: %s", cmd[0], ret)
             return False
         else:
             return True
-    except OSError, e:
-        print >>sys.stderr, "Failed to run", cmd[0], e
+    except OSError as e:
+        logging.error("Failed to run: %s -- %s", cmd[0], e)
     except KeyboardInterrupt:
-        print "Cancelled", cmd
+        logging.info("Cancelled: %s", cmd)
         try:
             p.terminate()
             p.wait()
@@ -194,7 +208,7 @@ def generate_remux_cmd(infile, outfile):
     raise Exception("You must install ffmpeg or libav-tools")
 
 def remux(infile, outfile):
-    print "Converting %s to mp4" % infile
+    logging.info("Converting %s to mp4", infile)
     cmd = generate_remux_cmd(infile, outfile)
     if not exec_subprocess(cmd):
         # failed, error has already been logged
@@ -206,18 +220,18 @@ def remux(infile, outfile):
             os.unlink(infile)
             return True
         else:
-            print >>sys.stderr, "The size of", outfile, "is suspicious, did avconv fail?"
+            logging.error("The size of %s is suspicious, did the remux fail?", outfile)
             return False
-    except Exception, e:
-        print >>sys.stderr, "Conversion failed", e
+    except Exception as e:
+        logging.error("Conversion failed! %s", e)
         return False
 
 def convert_to_mp4(filename):
-    with open(filename) as f:
+    with open(filename, "rb") as f:
         fourcc = f.read(4)
     basename, ext = os.path.splitext(filename)
 
-    if ext == ".mp4" and fourcc == "FLV\x01":
+    if ext == ".mp4" and fourcc == b"FLV\x01":
         os.rename(filename, basename + ".flv")
         ext = ".flv"
         filename = basename + ext
@@ -231,7 +245,7 @@ def convert_to_mp4(filename):
 
 def download_hds(filename, video_url, pvswf=None):
     filename = sanify_filename(filename)
-    print "Downloading: %s" % filename
+    logging.info("Downloading: %s", filename)
 
     video_url = video_url.replace("http://", "hds://")
     if pvswf:
@@ -253,7 +267,8 @@ def download_hds(filename, video_url, pvswf=None):
 def download_hls(filename, video_url):
     filename = sanify_filename(filename)
     video_url = video_url.replace("http://", "hlsvariant://")
-    print "Downloading: %s" % filename
+    logging.info("Downloading: %s", filename)
+
     cmd = [
         "livestreamer",
         "-o", filename,
@@ -275,7 +290,7 @@ def natural_sort(l, key=None):
         for c in re.split("([0-9]+)", k):
             c = c.strip()
             if c.isdigit():
-                newk.append(int(c))
+                newk.append(c.zfill(5))
             else:
                 for subc in c.split():
                     if subc not in ignore_list:
@@ -285,14 +300,14 @@ def natural_sort(l, key=None):
     return sorted(l, key=key_func)
 
 def append_to_qs(url, params):
-    r = list(urlparse.urlsplit(url))
-    qs = urlparse.parse_qs(r[3])
-    for k, v in params.iteritems():
+    r = list(urllib.parse.urlsplit(url))
+    qs = urllib.parse.parse_qs(r[3])
+    for k, v in params.items():
         if v is not None:
             qs[k] = v
-        elif qs.has_key(k):
+        elif k in qs:
             del qs[k]
-    r[3] = urllib.urlencode(qs, True)
-    url = urlparse.urlunsplit(r)
+    r[3] = urllib.parse.urlencode(sorted(qs.items()), True)
+    url = urllib.parse.urlunsplit(r)
     return url
 

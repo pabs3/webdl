@@ -1,5 +1,5 @@
 from common import grab_json, grab_xml, Node, download_hls
-import urlparse
+import urllib.parse
 
 API_URL = "http://iview.abc.net.au/api"
 AUTH_URL = "http://iview.abc.net.au/auth"
@@ -30,13 +30,13 @@ class IviewEpisodeNode(Node):
         }
         token = auth_doc.xpath("//auth:tokenhd/text()", namespaces=NS)[0]
         token_url = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
-        token_hostname = urlparse.urlparse(token_url).netloc
+        token_hostname = urllib.parse.urlparse(token_url).netloc
         return token, token_hostname
 
     def add_auth_token_to_url(self, video_url, token, token_hostname):
-        parsed_url = urlparse.urlparse(video_url)
+        parsed_url = urllib.parse.urlparse(video_url)
         hacked_url = parsed_url._replace(netloc=token_hostname, query="hdnea=" + token)
-        video_url = urlparse.urlunparse(hacked_url)
+        video_url = urllib.parse.urlunparse(hacked_url)
         return video_url
 
     def download(self):

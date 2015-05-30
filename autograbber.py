@@ -1,7 +1,8 @@
-#!/usr/bin/python2
+#!/usr/bin/env python
 
 from common import load_root_node
 import fnmatch
+import logging
 import os
 import sys
 
@@ -21,10 +22,10 @@ class DownloadList(object):
         try:
             self.f = open(filename, "r")
             for line in self.f:
-                self.seen_list.add(line.decode("utf-8").strip())
+                self.seen_list.add(line.strip())
             self.f.close()
-        except Exception, e:
-            print >>sys.stderr, "Could not open:", filename, e
+        except Exception as e:
+            logging.error("Could not open: %s -- %s", filename, e)
         self.f = open(filename, "a")
     
     def has_seen(self, node):
@@ -32,7 +33,7 @@ class DownloadList(object):
     
     def mark_seen(self, node):
         self.seen_list.add(node.title)
-        self.f.write(node.title.encode("utf-8") + "\n")
+        self.f.write(node.title + "\n")
         self.f.flush()
 
 
@@ -42,11 +43,11 @@ def match(download_list, node, pattern, count=0):
             if node.download():
                 download_list.mark_seen(node)
             else:
-                print >>sys.stderr, "Failed to download!", node.title
+                logging.error("Failed to download! %s", node.title)
         return
 
     if count >= len(pattern):
-        print "No match found for pattern:", "/".join(pattern)
+        logging.error("No match found for pattern:", "/".join(pattern))
         return
     p = pattern[count]
     for child in node.get_children():
@@ -68,10 +69,10 @@ if __name__ == "__main__":
         destdir = os.path.abspath(sys.argv[1])
         patternfile = os.path.abspath(sys.argv[2])
     except IndexError:
-        print >>sys.stderr, "Usage: %s destdir patternfile" % sys.argv[0]
+        print("Usage: %s destdir patternfile" % sys.argv[0])
         sys.exit(1)
     try:
         main(destdir, patternfile)
     except (KeyboardInterrupt, EOFError):
-        print "\nExiting..."
+        print("\nExiting...")
 

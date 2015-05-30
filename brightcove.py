@@ -1,3 +1,4 @@
+import logging
 import re
 import sys
 
@@ -26,7 +27,7 @@ class BrightcoveVideoNode(Node):
         doc = grab_json(desc_url, 3600)
         video_url = doc["HLSURL"]
         if not video_url:
-            print("No HLS stream available for: " + self.title)
+            logging.error("No HLS stream available for: %s", self.title)
             return False
 
         filename = self.title + ".ts"
@@ -50,8 +51,6 @@ class BrightcoveRootNode(Node):
     def fill_children(self):
         page_number = 0
         while page_number < 100:
-            sys.stdout.write(".")
-            sys.stdout.flush()
             url = self.get_all_videos_url(page_number)
             page_number += 1
 
@@ -62,7 +61,6 @@ class BrightcoveRootNode(Node):
 
             for video_desc in items:
                 self.process_video(video_desc)
-        print
 
     def process_video(self, video_desc):
         if not video_desc["customFields"]:

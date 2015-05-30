@@ -5,32 +5,30 @@ WebDL is a set of Python scripts to grab video from online Free To Air Australia
 ## Requirements
 
 * [Livestreamer](http://docs.livestreamer.io/install.html)
-* python3-pycrypto -- Livestreamer needs this for some videos
-* [rtmpdump](https://rtmpdump.mplayerhq.hu)
-* python 2.7 (webdl doesn't work with python3 yet)
-* python2-lxml (for python2)
+* python 2.7 or 3.2+
+* pycrypto -- Livestreamer needs this for some videos
+* python-lxml
 * ffmpeg / libav-tools
 
 ## Instructions
 
 ### Arch Linux
-    pacman -S livestreamer python-crypto python2-lxml rtmpdump ffmpeg
+    pacman -S livestreamer python-crypto python-lxml ffmpeg
 
 ### Ubuntu
-    apt-get install livestreamer python3-crypto python-lxml rtmpdump libav-tools
+    apt-get install livestreamer python-crypto python-lxml libav-tools
 
 ### Mac OS X
 
 Warning, this is untested!
 
-    brew install python3 python rtmpdump ffmpeg
-    pip3 install livestreamer pycrypto
-    pip install lxml
+    brew install python3 ffmpeg
+    pip3 install livestreamer pycrypto lxml
 
 ### Then get WebDL itself
     hg clone https://bitbucket.org/delx/webdl
     cd webdl
-    ./grabber.py
+    python3 ./grabber.py
 
 
 ## Bug reports
