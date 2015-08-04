@@ -29,7 +29,7 @@ class SbsVideoNode(Node):
         video_url = video.attrib["src"]
         if not video_url:
             raise Exception("Unsupported video %s: %s" % (self.video_id, self.title))
-        filename = self.title + ".mp4"
+        filename = self.title + ".ts"
         return download_hls(filename, video_url)
 
     def get_player_params(self, doc):
