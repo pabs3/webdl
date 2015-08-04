@@ -1,112 +1,100 @@
 #!/usr/bin/env python
 
-from common import grab_text, grab_html, grab_json, grab_xml, download_hds, Node, append_to_qs
+from common import grab_html, grab_json, grab_xml, download_hls, Node
 
-import collections
-import urllib.parse
+import json
 
 BASE = "http://www.sbs.com.au"
-VIDEO_MENU = BASE + "/ondemand/js/video-menu"
+FULL_VIDEO_LIST = BASE + "/api/video_feed/f/Bgtm9B/sbs-section-programs/?form=json"
 VIDEO_URL = BASE + "/ondemand/video/single/%s"
-VIDEO_MAGIC = {
-    "v": "2.5.14",
-    "fp": "MAC 11,1,102,55",
-    "r": "FLQDD",
-    "g": "YNANAXRIYFYO",
-}
-SWF_URL = "http://resources.sbs.com.au/vod/theplatform/core/current/swf/flvPlayer.swf"
 
 NS = {
     "smil": "http://www.w3.org/2005/SMIL21/Language",
 }
 
 
-class SbsNode(Node):
-    def __init__(self, title, parent, video_id):
+class SbsVideoNode(Node):
+    def __init__(self, title, parent, url):
         Node.__init__(self, title, parent)
-        self.title = title
-        self.video_id = video_id.split("/")[-1]
+        self.video_id = url.split("/")[-1]
         self.can_download = True
 
     def download(self):
         doc = grab_html(VIDEO_URL % self.video_id, 0)
-        meta_video = doc.xpath("//meta[@property='og:video']")[0]
-        swf_url = meta_video.attrib["content"]
-        swf_url_qs = urllib.parse.parse_qs(urllib.parse.urlparse(swf_url).query)
-        desc_url = swf_url_qs["v"][0]
+        player_params = self.get_player_params(doc)
+        release_url = player_params["releaseUrls"]["html"]
 
-        doc = grab_text(desc_url, 0)
-        doc_qs = urllib.parse.parse_qs(doc)
-        desc_url = doc_qs["releaseUrl"][0]
-
-        doc = grab_xml(desc_url, 0)
-        error = doc.xpath("//smil:param[@name='exception']/@value", namespaces=NS)
-        if error:
-            raise Exception("Error downloading, SBS said: " + error[0])
-
+        doc = grab_xml(release_url, 0)
         video = doc.xpath("//smil:video", namespaces=NS)[0]
         video_url = video.attrib["src"]
         if not video_url:
-            raise Exception("Unsupported video '%s': %s" % (self.title, desc_url))
-        filename = self.title + ".flv"
-        video_url = append_to_qs(video_url, VIDEO_MAGIC)
-        return download_hds(filename, video_url, pvswf=SWF_URL)
+            raise Exception("Unsupported video %s: %s" % (self.video_id, self.title))
+        filename = self.title + ".mp4"
+        return download_hls(filename, video_url)
+
+    def get_player_params(self, doc):
+        for script in doc.xpath("//script"):
+            if not script.text:
+                continue
+            for line in script.text.split("\n"):
+                s = "var playerParams = {"
+                if s in line:
+                    p1 = line.find(s) + len(s) - 1
+                    p2 = line.find("};", p1) + 1
+                    if p1 >= 0 and p2 > 0:
+                        return json.loads(line[p1:p2])
+        raise Exception("Unable to find player params for %s: %s" % (self.video_id, self.title))
+
 
 class SbsNavNode(Node):
-    def __init__(self, title, parent, url):
-        Node.__init__(self, title, parent)
-        self.url = url
+    def create_video_node(self, entry_data):
+        SbsVideoNode(entry_data["title"], self, entry_data["id"])
 
-    def fill_children(self):
-        try:
-            doc = grab_json(BASE + self.url, 3600)
-        except ValueError:
-            # SBS sends XML as an error message :\
-            return
-        if len(doc.get("entries", [])) == 0:
-            return
-        for entry in doc["entries"]:
-            self.fill_entry(entry)
+    def find_existing_child(self, path):
+        for child in self.children:
+            if child.title == path:
+                return child
 
-    def fill_entry(self, entry):
-        title = entry["title"]
-        video_id = entry["id"]
-        SbsNode(title, self, video_id)
-
-class SbsRootNode(Node):
+class SbsRootNode(SbsNavNode):
     def __init__(self, parent):
         Node.__init__(self, "SBS", parent)
 
     def fill_children(self):
-        menu = grab_json(VIDEO_MENU, 3600, skip_assignment=True)
-        for name in menu.keys():
-            self.fill_category(self, menu[name])
+        full_video_list = grab_json(FULL_VIDEO_LIST, 3600)
+        category_and_entry_data = self.explode_videos_to_unique_categories(full_video_list)
+        for category_path, entry_data in category_and_entry_data:
+            nav_node = self.create_nav_node(self, category_path)
+            nav_node.create_video_node(entry_data)
 
-    def create_nav_node(self, name, parent, cat_data, url_key):
-        try:
-            url = cat_data[url_key]
-        except KeyError:
+    def explode_videos_to_unique_categories(self, full_video_list):
+        for entry_data in full_video_list["entries"]:
+            for category_data in entry_data["media$categories"]:
+                category_path = self.calculate_category_path(
+                    category_data["media$scheme"],
+                    category_data["media$name"],
+                )
+                if category_path:
+                    yield category_path, entry_data
+
+    def calculate_category_path(self, scheme, name):
+        if not scheme:
             return
-        if url.strip():
-            SbsNavNode(name, parent, url)
-
-    def fill_category(self, parent, cat_data):
-        if "children" not in cat_data:
-            name = cat_data["name"]
-            self.create_nav_node(name, parent, cat_data, "url")
+        if scheme == name:
             return
+        name = name.split("/")
+        if name[0] != scheme:
+            name.insert(0, scheme)
+        return name
 
-        node = Node(cat_data["name"], parent)
-        self.create_nav_node("-Featured", node, cat_data, "furl")
-        self.create_nav_node("-Latest", node, cat_data, "url")
-        self.create_nav_node("-Most Popular", node, cat_data, "purl")
+    def create_nav_node(self, parent, category_path):
+        if not category_path:
+            return parent
 
-        children = cat_data.get("children", [])
-        if isinstance(children, dict):
-            children = [children[k] for k in sorted(children.keys())]
-        for child_cat in children:
-            self.fill_category(node, child_cat)
+        current_path = category_path[0]
+        current_node = parent.find_existing_child(current_path)
+        if not current_node:
+            current_node = SbsNavNode(current_path, parent)
+        return self.create_nav_node(current_node, category_path[1:])
 
 def fill_nodes(root_node):
     SbsRootNode(root_node)
-
