@@ -2,7 +2,7 @@ import logging
 import re
 import sys
 
-from common import grab_json, download_hls, download_http, Node, append_to_qs
+from common import grab_json, download_hls, download_hds, Node, append_to_qs
 
 CH9_TOKEN = "ogxhPgSphIVa2hhxbi9oqtYwtg032io4B4-ImwddYliFWHqS0UfMEw.."
 CH10_TOKEN = "lWCaZyhokufjqe7H4TLpXwHSTnNXtqHxyMvoNOsmYA_GRaZ4zcwysw.."
@@ -19,13 +19,13 @@ class BrightcoveVideoNode(Node):
 
     def download(self):
         f = None
-        try_streams = [self.try_widevine, self.try_hls]
+        try_streams = [self.try_hds, self.try_hls]
 
         while f is None and try_streams:
             f = try_streams.pop()()
 
         if f is None:
-            logging.error("No HLS or Widevine stream available for: %s", self.title)
+            logging.error("No HLS or HDS stream available for: %s", self.title)
             return False
 
         return f()
@@ -46,25 +46,21 @@ class BrightcoveVideoNode(Node):
         filename = self.title + ".ts"
         return lambda: download_hls(filename, video_url)
 
-    def try_widevine(self):
+    def try_hds(self):
         desc_url = append_to_qs(BRIGHTCOVE_API, {
             "token": self.token,
             "command": "find_video_by_id",
-            "video_fields": "WVMRenditions",
+            "video_fields": "hdsManifestUrl",
             "video_id": self.video_id,
         })
 
         doc = grab_json(desc_url, 3600)
-
-        renditions = doc["WVMRenditions"]
-        if not renditions:
+        video_url = doc["hdsManifestUrl"]
+        if not video_url:
             return
 
-        best_rendition = sorted(renditions, key=lambda r: r["frameHeight"])[-1]
-        video_url = best_rendition["url"]
-        filename = self.title + ".ts"
-
-        return lambda: download_http(filename, video_url)
+        filename = self.title + ".flv"
+        return lambda: download_hds(filename, video_url)
 
 
 class BrightcoveRootNode(Node):
