@@ -247,7 +247,7 @@ def download_hds(filename, video_url, pvswf=None):
     filename = sanify_filename(filename)
     logging.info("Downloading: %s", filename)
 
-    video_url = video_url.replace("http://", "hds://")
+    video_url = "hds://" + video_url
     if pvswf:
         param = "%s pvswf=%s" % (video_url, pvswf)
     else:
@@ -266,7 +266,7 @@ def download_hds(filename, video_url, pvswf=None):
 
 def download_hls(filename, video_url):
     filename = sanify_filename(filename)
-    video_url = video_url.replace("http://", "hlsvariant://")
+    video_url = "hlsvariant://" + video_url
     logging.info("Downloading: %s", filename)
 
     cmd = [
