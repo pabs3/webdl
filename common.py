@@ -77,9 +77,18 @@ def sanify_filename(filename):
     assert len(filename) > 0
     return filename
 
+def ensure_scheme(url):
+    parts = urllib.parse.urlparse(url)
+    if parts.scheme:
+        return url
+    parts = list(parts)
+    parts[0] = "http"
+    return urllib.parse.urlunparse(parts)
+
 cookiejar = http.cookiejar.CookieJar()
 urlopener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookiejar))
 def _urlopen(url, referrer=None):
+    url = ensure_scheme(url)
     req = urllib.request.Request(url)
     req.add_header("User-Agent", USER_AGENT)
     if referrer:
