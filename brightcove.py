@@ -5,7 +5,7 @@ import sys
 from common import grab_json, download_hls, download_hds, Node, append_to_qs
 
 CH9_TOKEN = "ogxhPgSphIVa2hhxbi9oqtYwtg032io4B4-ImwddYliFWHqS0UfMEw.."
-CH10_TOKEN = "lWCaZyhokufjqe7H4TLpXwHSTnNXtqHxyMvoNOsmYA_GRaZ4zcwysw.."
+CH10_TOKEN = "90QPG7lQuLJAc4s82qA-T_UoDhz_VBFK6SGstWDB0jZH8eu1SZQDFA.."
 
 BRIGHTCOVE_API = "http://api.brightcove.com/services/library?"
 
