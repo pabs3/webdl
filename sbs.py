@@ -78,11 +78,6 @@ class SbsRootNode(SbsNavNode):
             for entry in entries:
                 yield entry
             offset += amount
-            import sys
-            sys.stdout.write(".")
-            sys.stdout.flush()
-        sys.stdout.write("\n")
-        sys.stdout.flush()
 
     def explode_videos_to_unique_categories(self, all_video_entries):
         for entry_data in all_video_entries:
