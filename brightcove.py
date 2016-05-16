@@ -39,7 +39,7 @@ class BrightcoveVideoNode(Node):
         })
 
         doc = grab_json(desc_url, 3600)
-        video_url = doc["HLSURL"]
+        video_url = doc and doc["HLSURL"]
         if not video_url:
             return
 
@@ -55,7 +55,7 @@ class BrightcoveVideoNode(Node):
         })
 
         doc = grab_json(desc_url, 3600)
-        video_url = doc["hdsManifestUrl"]
+        video_url = doc and doc["hdsManifestUrl"]
         if not video_url:
             return
 
