@@ -89,4 +89,4 @@ The above will download all episodes of QI from ABC as well as every SBS documen
 
 ## Bug reports
 
-Log an issue on the [Bitbucket project](https://bitbucket.org/delx/webdl/issues?status=new&status=open)
+Please raise issues on the [Bitbucket project](https://bitbucket.org/delx/webdl/issues?status=new&status=open).
