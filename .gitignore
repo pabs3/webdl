@@ -1,5 +1,3 @@
-syntax: glob
 *.py[oc]
-.*.swp
 downloaded_auto.txt
 
