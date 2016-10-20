@@ -188,52 +188,74 @@ def exec_subprocess(cmd):
 
 def check_command_exists(cmd):
     try:
-        subprocess.check_output(cmd)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         return True
     except Exception:
         return False
 
-def generate_remux_cmd(infile, outfile):
-    if check_command_exists(["avconv", "--help"]):
-        return [
-            "avconv",
-            "-i", infile,
-            "-bsf:a", "aac_adtstoasc",
-            "-acodec", "copy",
-            "-vcodec", "copy",
-            outfile,
-        ]
-
-    if check_command_exists(["ffmpeg", "--help"]):
-        return [
-            "ffmpeg",
-            "-i", infile,
-            "-bsf:a", "aac_adtstoasc",
-            "-acodec", "copy",
-            "-vcodec", "copy",
-            outfile,
-        ]
+def find_ffmpeg():
+    for ffmpeg in ["avconv", "ffmpeg"]:
+        if check_command_exists([ffmpeg, "--help"]):
+            return ffmpeg
 
     raise Exception("You must install ffmpeg or libav-tools")
 
+def find_ffprobe():
+    for ffprobe in ["avprobe", "ffprobe"]:
+        if check_command_exists([ffprobe, "--help"]):
+            return ffprobe
+
+    raise Exception("You must install ffmpeg or libav-tools")
+
+def get_duration(filename):
+    ffprobe = find_ffprobe()
+
+    cmd = [
+        ffprobe,
+        filename,
+        "-show_format_entry", "duration",
+        "-v", "quiet",
+    ]
+    output = subprocess.check_output(cmd).decode("utf-8")
+    for line in output.split("\n"):
+        if line.startswith("duration="):
+            return float(line.split("=")[1])
+
+    raise Exception("Unable to determine video duration of " + filename)
+
+def check_video_durations(flv_filename, mp4_filename):
+    flv_duration = get_duration(flv_filename)
+    mp4_duration = get_duration(mp4_filename)
+
+    if abs(flv_duration - mp4_duration) > 1:
+        logging.error(
+            "The duration of %s is suspicious, did the remux fail? Expected %s == %s",
+            mp4_filename, flv_duration, mp4_duration
+        )
+        return False
+
+    return True
+
 def remux(infile, outfile):
     logging.info("Converting %s to mp4", infile)
-    cmd = generate_remux_cmd(infile, outfile)
+
+    ffmpeg = find_ffmpeg()
+    cmd = [
+        ffmpeg,
+        "-i", infile,
+        "-bsf:a", "aac_adtstoasc",
+        "-acodec", "copy",
+        "-vcodec", "copy",
+        outfile,
+    ]
     if not exec_subprocess(cmd):
-        # failed, error has already been logged
         return False
-    try:
-        flv_size = os.stat(infile).st_size
-        mp4_size = os.stat(outfile).st_size
-        if abs(flv_size - mp4_size) < 0.1 * flv_size:
-            os.unlink(infile)
-            return True
-        else:
-            logging.error("The size of %s is suspicious, did the remux fail?", outfile)
-            return False
-    except Exception as e:
-        logging.error("Conversion failed! %s", e)
+
+    if not check_video_durations(infile, outfile):
         return False
+
+    os.unlink(infile)
+    return True
 
 def convert_to_mp4(filename):
     with open(filename, "rb") as f:
