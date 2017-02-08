@@ -26,7 +26,7 @@ Warning, this is untested!
     pip3 install livestreamer pycrypto lxml
 
 ### Then get WebDL itself
-    hg clone https://bitbucket.org/delx/webdl
+    git clone https://bitbucket.org/delx/webdl
     cd webdl
     python3 ./grabber.py
 
