@@ -219,7 +219,9 @@ def get_duration(filename):
     output = subprocess.check_output(cmd).decode("utf-8")
     for line in output.split("\n"):
         if line.startswith("duration="):
-            return float(line.split("=")[1])
+            return float(line.split("=")[1]) # ffprobe
+        if re.match(R'^[0-9.]*$', line):
+            return float(line) # avprobe
 
     raise Exception("Unable to determine video duration of " + filename)
 
