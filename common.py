@@ -1,5 +1,3 @@
-import python2_compat
-
 import hashlib
 import http.cookiejar
 import json

@@ -1,12 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from common import load_root_node, natural_sort
-
-# Python2 compatibility
-try:
-    raw_input
-except NameError:
-    raw_input = input
 
 
 def choose(options, allow_multi):
@@ -17,7 +11,7 @@ def choose(options, allow_multi):
     print("  0) Back")
     while True:
         try:
-            values = list(map(int, raw_input("Choose> ").split()))
+            values = list(map(int, input("Choose> ").split()))
             if len(values) == 0:
                 continue
             if 0 in values:
@@ -52,7 +46,7 @@ def main():
         elif will_download:
             for n in result:
                 if not n.download():
-                    raw_input("Press return to continue...\n")
+                    input("Press return to continue...\n")
         else:
             node = result
 

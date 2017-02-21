@@ -1,0 +1,3 @@
+livestreamer
+pycrypto
+lxml

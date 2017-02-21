@@ -1,3 +1,4 @@
-*.py[oc]
+__pycache__
 downloaded_auto.txt
+.virtualenv
 
