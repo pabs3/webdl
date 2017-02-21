@@ -1,4 +1,5 @@
 from common import grab_json, grab_xml, Node, download_hls
+import requests_cache
 import urllib.parse
 
 API_URL = "http://iview.abc.net.au/api"
@@ -24,7 +25,8 @@ class IviewEpisodeNode(Node):
         raise Exception("Missing hls-high program stream for " + self.video_key)
 
     def get_auth_details(self):
-        auth_doc = grab_xml(AUTH_URL, 0)
+        with requests_cache.disabled():
+            auth_doc = grab_xml(AUTH_URL)
         NS = {
             "auth": "http://www.abc.net.au/iView/Services/iViewHandshaker",
         }
@@ -40,7 +42,7 @@ class IviewEpisodeNode(Node):
         return video_url
 
     def download(self):
-        info = grab_json(API_URL + "/programs/" + self.video_key, 3600)
+        info = grab_json(API_URL + "/programs/" + self.video_key)
         video_url = self.find_hls_url(info["playlist"])
         token, token_hostname= self.get_auth_details()
         video_url = self.add_auth_token_to_url(video_url, token, token_hostname)
@@ -67,7 +69,7 @@ class IviewIndexNode(Node):
         IviewEpisodeNode(episode_title, series_node, video_key)
 
     def fill_children(self):
-        info = grab_json(self.url, 3600)
+        info = grab_json(self.url)
         for index_list in info["index"]:
             for ep_info in index_list["episodes"]:
                 self.add_episode(ep_info)
@@ -86,7 +88,7 @@ class IviewFlatNode(Node):
         IviewEpisodeNode(episode_title, self, video_key)
 
     def fill_children(self):
-        info = grab_json(self.url, 3600)
+        info = grab_json(self.url)
         for ep_info in info:
             self.add_episode(ep_info)
 

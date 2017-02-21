@@ -38,7 +38,7 @@ class BrightcoveVideoNode(Node):
             "video_id": self.video_id,
         })
 
-        doc = grab_json(desc_url, 3600)
+        doc = grab_json(desc_url)
         video_url = doc and doc["HLSURL"]
         if not video_url:
             return
@@ -54,7 +54,7 @@ class BrightcoveVideoNode(Node):
             "video_id": self.video_id,
         })
 
-        doc = grab_json(desc_url, 3600)
+        doc = grab_json(desc_url)
         video_url = doc and doc["hdsManifestUrl"]
         if not video_url:
             return
@@ -84,7 +84,7 @@ class BrightcoveRootNode(Node):
             url = self.get_all_videos_url(page_number)
             page_number += 1
 
-            page = grab_json(url, 3600)
+            page = grab_json(url)
             items = page["items"]
             if len(items) == 0:
                 break

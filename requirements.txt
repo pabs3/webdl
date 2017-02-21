@@ -1,3 +1,5 @@
 livestreamer
 pycrypto
 lxml
+requests
+requests-cache

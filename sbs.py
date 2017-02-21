@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import requests_cache
 from common import grab_html, grab_json, grab_xml, download_hls, Node, append_to_qs
 
 import json
@@ -20,11 +21,13 @@ class SbsVideoNode(Node):
         self.can_download = True
 
     def download(self):
-        doc = grab_html(VIDEO_URL % self.video_id, 0)
+        with requests_cache.disabled():
+            doc = grab_html(VIDEO_URL % self.video_id)
         player_params = self.get_player_params(doc)
         release_url = player_params["releaseUrls"]["html"]
 
-        doc = grab_xml(release_url, 0)
+        with requests_cache.disabled():
+            doc = grab_xml(release_url if not release_url.startswith("//") else "https:" + release_url)
         video = doc.xpath("//smil:video", namespaces=NS)[0]
         video_url = video.attrib["src"]
         if not video_url:
@@ -71,7 +74,7 @@ class SbsRootNode(SbsNavNode):
         amount = 500
         while True:
             url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount)})
-            data = grab_json(url, 3600)
+            data = grab_json(url)
             entries = data["entries"]
             if len(entries) == 0:
                 break

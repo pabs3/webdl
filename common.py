@@ -1,17 +1,17 @@
 import hashlib
-import http.cookiejar
 import json
 import logging
 import lxml.etree
 import lxml.html
 import os
 import re
+import requests
+import requests_cache
 import shutil
 import signal
 import subprocess
 import time
 import urllib.parse
-import urllib.request
 
 
 try:
@@ -26,12 +26,12 @@ logging.basicConfig(
     level = logging.INFO if os.environ.get("DEBUG", None) is None else logging.DEBUG,
 )
 
-CACHE_DIR = os.path.join(
+CACHE_FILE = os.path.join(
     os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache")),
-    "webdl"
+    "webdl",
+    "requests_cache"
 )
-
-USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
+requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=3600)
 
 
 class Node(object):
@@ -83,83 +83,36 @@ def ensure_scheme(url):
     parts[0] = "http"
     return urllib.parse.urlunparse(parts)
 
-cookiejar = http.cookiejar.CookieJar()
-urlopener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cookiejar))
-def _urlopen(url, referrer=None):
-    url = ensure_scheme(url)
-    req = urllib.request.Request(url)
-    req.add_header("User-Agent", USER_AGENT)
-    if referrer:
-        req.add_header("Referer", referrer)
-    return urlopener.open(req)
+http_session = requests.Session()
+http_session.headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
 
-def urlopen(url, max_age):
-    logging.debug("urlopen(%r, %r)", url, max_age)
+def grab_text(url):
+    logging.debug("grab_text(%r)", url)
+    request = http_session.prepare_request(requests.Request("GET", url))
+    response = http_session.send(request)
+    return response.text
 
-    if not os.path.isdir(CACHE_DIR):
-        os.makedirs(CACHE_DIR)
-
-    if max_age <= 0:
-        return _urlopen(url)
-
-    filename = hashlib.md5(url.encode("utf-8")).hexdigest()
-    filename = os.path.join(CACHE_DIR, filename)
-    if os.path.exists(filename):
-        file_age = int(time.time()) - os.path.getmtime(filename)
-        if file_age < max_age:
-            logging.debug("loading from cache: %s", filename)
-            return open(filename, "rb")
-
-    logging.debug("downloading: %s -> %s", url, filename)
-    src = _urlopen(url)
-    dst = open(filename, "wb")
-    try:
-        shutil.copyfileobj(src, dst)
-    except Exception as e:
-        try:
-            os.unlink(filename)
-        except OSError:
-            pass
-        raise e
-    src.close()
-    dst.close()
-
-    return open(filename, "rb")
-
-def grab_text(url, max_age):
-    f = urlopen(url, max_age)
-    text = f.read().decode("utf-8")
-    f.close()
-    return text
-
-def grab_html(url, max_age):
-    f = urlopen(url, max_age)
-    doc = lxml.html.parse(f, lxml.html.HTMLParser(encoding="utf-8", recover=True))
-    f.close()
+def grab_html(url):
+    logging.debug("grab_html(%r)", url)
+    request = http_session.prepare_request(requests.Request("GET", url))
+    response = http_session.send(request, stream=True)
+    doc = lxml.html.parse(response.raw, lxml.html.HTMLParser(encoding="utf-8", recover=True))
+    response.close()
     return doc
 
-def grab_xml(url, max_age):
-    f = urlopen(url, max_age)
-    doc = lxml.etree.parse(f, lxml.etree.XMLParser(encoding="utf-8", recover=True))
-    f.close()
+def grab_xml(url):
+    logging.debug("grab_xml(%r)", url)
+    request = http_session.prepare_request(requests.Request("GET", url))
+    response = http_session.send(request, stream=True)
+    doc = lxml.etree.parse(response.raw, lxml.etree.XMLParser(encoding="utf-8", recover=True))
+    response.close()
     return doc
 
-def grab_json(url, max_age, skip_assignment=False, skip_function=False):
-    f = urlopen(url, max_age)
-    text = f.read().decode("utf-8")
-
-    if skip_assignment:
-        pos = text.find("=")
-        text = text[pos+1:]
-
-    elif skip_function:
-        pos = text.find("(")
-        rpos = text.rfind(")")
-        text = text[pos+1:rpos]
-
-    doc = json.loads(text)
-    f.close()
-    return doc
+def grab_json(url):
+    logging.debug("grab_json(%r)", url)
+    request = http_session.prepare_request(requests.Request("GET", url))
+    response = http_session.send(request)
+    return response.json()
 
 def exec_subprocess(cmd):
     logging.debug("Executing: %s", cmd)
