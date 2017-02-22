@@ -5,13 +5,23 @@ WebDL is a set of Python scripts to grab video from online Free To Air Australia
 
 ## Installation
 
-    git clone https://bitbucket.org/delx/webdl
-    cd webdl
-    virtualenv --python python3 .virtualenv
-    . .virtualenv/bin/activate
-    pip install -r requirements.txt
-    ./grabber.py
+Install the following packages using your package manager:
 
+* Python 3.2+
+* ffmpeg or libav-tools
+
+Clone the WebDL repository:
+```
+git clone https://bitbucket.org/delx/webdl
+cd webdl
+```
+
+Set up a Python virtualenv and use pip to install the other dependencies:
+```
+virtualenv --python python3 .virtualenv
+. .virtualenv/bin/activate
+pip install -r requirements.txt
+```
 
 ## Interactive usage (grabber.py)
 
