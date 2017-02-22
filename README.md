@@ -52,21 +52,21 @@ The bolded parts are what you type. Note that you can go back on any screen by t
 
 ## Cron scripted usage (autograbber.py)
 
-I have a shell script which looks something like this, I run it daily from crontab.
+You can schedule a regular download of your favourite shows.
 
 ```
 # m    h  dom mon dow   command
-  0    1   *   *   *     ./autograbber.py /path/to/video-dir/ /path/to/patterns.txt
+  0    1   *   *   *     ./autograbber.py /videos/ABC4Kids /videos/Insight
 ```
 
-The patterns.txt file should contain shell-style globs, something like:
+Each of these directories should contain a `.patterns.txt` with shell-style globs:
 
 ```
-ABC iView/*/QI*/*
-SBS/Programs/Documentary/*/*
+ABC iView/By Channel/ABC4Kids/*/*
+SBS/Channel/SBS1/Insight*
 ```
 
-The above will download all episodes of QI from ABC as well as every SBS documentary. Whenever an episode is downloaded it is recorded into downloaded_auto.txt. Even if you move the files somewhere else they will not be redownloaded.
+Whenever an episode is downloaded it is recorded into `.downloaded_auto.txt`. Even if you move the files somewhere else they will not be redownloaded.
 
 
 ## Bug reports
