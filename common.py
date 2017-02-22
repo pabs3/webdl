@@ -31,6 +31,9 @@ CACHE_FILE = os.path.join(
     "webdl",
     "requests_cache"
 )
+if not os.path.isdir(os.path.dirname(CACHE_FILE)):
+    os.makedirs(os.path.dirname(CACHE_FILE))
+
 requests_cache.install_cache(CACHE_FILE, backend='sqlite', expire_after=3600)
 
 
