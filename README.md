@@ -3,6 +3,15 @@
 WebDL is a set of Python scripts to grab video from online Free To Air Australian channels.
 
 
+## News
+
+### 2017-02-24
+* Now requires Python3, use the `python2` branch if you need the old version.
+* Recommended installation is now with `virtualenv` and `pip` to install dependencies.
+* Removed some custom logic in favour of the `requests` and `requests_cache` libraries.
+* `autograbber.py` can write to multiple directories, previous command line args are still supported.
+
+
 ## Installation
 
 Install the following packages using your package manager:
