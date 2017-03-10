@@ -25,7 +25,7 @@ class SbsVideoNode(Node):
         release_url = player_params["releaseUrls"]["html"]
 
         with requests_cache.disabled():
-            doc = grab_xml(release_url if not release_url.startswith("//") else "https:" + release_url)
+            doc = grab_xml(release_url if not release_url.startswith("//") else "http:" + release_url)
         video = doc.xpath("//smil:video", namespaces=NS)[0]
         video_url = video.attrib["src"]
         if not video_url:
