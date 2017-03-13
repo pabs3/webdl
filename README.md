@@ -12,11 +12,11 @@ WebDL is a set of Python scripts to grab video from online Free To Air Australia
 * `autograbber.py` can write to multiple directories, previous command line args are still supported.
 
 
-## Installation
+## Installation using pip
 
 Install the following packages using your package manager:
 
-* Python 3.2+
+* Python 3.2+ (including dev package)
 * ffmpeg or libav-tools
 
 Clone the WebDL repository:
@@ -30,6 +30,28 @@ Set up a Python virtualenv and use pip to install the other dependencies:
 virtualenv --python python3 .virtualenv
 . .virtualenv/bin/activate
 pip install -r requirements.txt
+```
+
+Whenever you want to run WebDL you must source the `.virtualenv/bin/activate` script from your shell.
+
+
+## Installation on Debian/Ubuntu
+
+Install Python 3 and needed libraries:
+```
+apt-get install python3 python3-lxml python3-requests python3-requests-cache
+```
+
+
+Install Livestreamer and PyCrypto. Ubuntu packages this as Python 2:
+```
+apt-get install livestreamer python-crypto
+```
+
+
+Install ffmpeg:
+```
+apt-get install ffmpeg
 ```
 
 ## Interactive usage (grabber.py)
