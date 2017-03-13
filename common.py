@@ -202,6 +202,7 @@ def remux(infile, outfile):
         "-bsf:a", "aac_adtstoasc",
         "-acodec", "copy",
         "-vcodec", "copy",
+        "-y",
         outfile,
     ]
     if not exec_subprocess(cmd):
@@ -242,6 +243,7 @@ def download_hds(filename, video_url, pvswf=None):
 
     cmd = [
         "livestreamer",
+        "-f",
         "-o", filename,
         param,
         "best",
@@ -258,6 +260,7 @@ def download_hls(filename, video_url):
 
     cmd = [
         "livestreamer",
+        "-f",
         "-o", filename,
         video_url,
         "best",
