@@ -100,7 +100,7 @@ def grab_html(url):
     logging.debug("grab_html(%r)", url)
     request = http_session.prepare_request(requests.Request("GET", url))
     response = http_session.send(request, stream=True)
-    doc = lxml.html.parse(io.StringIO(response.text), lxml.html.HTMLParser(encoding="utf-8", recover=True))
+    doc = lxml.html.parse(io.BytesIO(response.content), lxml.html.HTMLParser(encoding="utf-8", recover=True))
     response.close()
     return doc
 
@@ -108,7 +108,7 @@ def grab_xml(url):
     logging.debug("grab_xml(%r)", url)
     request = http_session.prepare_request(requests.Request("GET", url))
     response = http_session.send(request, stream=True)
-    doc = lxml.etree.parse(io.StringIO(response.text), lxml.etree.XMLParser(encoding="utf-8", recover=True))
+    doc = lxml.etree.parse(io.BytesIO(response.content), lxml.etree.XMLParser(encoding="utf-8", recover=True))
     response.close()
     return doc
 
