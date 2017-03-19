@@ -93,11 +93,11 @@ The bolded parts are what you type. Note that you can go back on any screen by t
 
 ## Cron scripted usage (autograbber.py)
 
-You can schedule a regular download of your favourite shows.
+You can schedule a regular download of your favourite shows. This example uses `chronic` from `moreutils`.
 
 ```
 # m    h  dom mon dow   command
-  0    1   *   *   *     ./autograbber.py /videos/ABC4Kids /videos/Insight
+  0    1   *   *   *     timeout 6h chronic $HOME/webdl/autograbber-cron.sh /videos/ABC4Kids /videos/Insight
 ```
 
 Each of these directories should contain a `.patterns.txt` with shell-style globs:
