@@ -73,6 +73,8 @@ class SbsRootNode(SbsNavNode):
         while True:
             url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount)})
             data = grab_json(url)
+            if "entries" not in data:
+                raise Exception("Missing data in SBS response", data)
             entries = data["entries"]
             if len(entries) == 0:
                 break
