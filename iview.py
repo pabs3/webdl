@@ -11,6 +11,14 @@ def format_episode_title(series, ep):
     else:
         return series
 
+def add_episode(parent, ep_info):
+    video_key = ep_info["episodeHouseNumber"]
+    series_title = ep_info["seriesTitle"]
+    title = ep_info.get("title", None)
+    episode_title = format_episode_title(series_title, title)
+
+    IviewEpisodeNode(episode_title, parent, video_key)
+
 class IviewEpisodeNode(Node):
     def __init__(self, title, parent, video_key):
         Node.__init__(self, title, parent)
@@ -48,49 +56,48 @@ class IviewEpisodeNode(Node):
         video_url = self.add_auth_token_to_url(video_url, token, token_hostname)
         return download_hls(self.filename, video_url)
 
-
 class IviewIndexNode(Node):
     def __init__(self, title, parent, url):
         Node.__init__(self, title, parent)
         self.url = url
-        self.series_map = {}
-
-    def add_episode(self, ep_info):
-        video_key = ep_info["episodeHouseNumber"]
-        series_title = ep_info["seriesTitle"]
-        title = ep_info.get("title", None)
-        episode_title = format_episode_title(series_title, title)
-
-        series_node = self.series_map.get(series_title, None)
-        if not series_node:
-            series_node = Node(series_title, self)
-            self.series_map[series_title] = series_node
-
-        IviewEpisodeNode(episode_title, series_node, video_key)
+        self.unique_series = set()
 
     def fill_children(self):
         info = grab_json(self.url)
         for index_list in info["index"]:
             for ep_info in index_list["episodes"]:
-                self.add_episode(ep_info)
+                self.add_series(ep_info)
+
+    def add_series(self, ep_info):
+        title = ep_info["seriesTitle"]
+        if title in self.unique_series:
+            return
+        self.unique_series.add(title)
+        url = API_URL + "/" + ep_info["href"]
+        IviewSeriesNode(title, self, url)
+
+class IviewSeriesNode(Node):
+    def __init__(self, title, parent, url):
+        Node.__init__(self, title, parent)
+        self.url = url
+
+    def fill_children(self):
+        ep_info = grab_json(self.url)
+        series_slug = ep_info["href"].split("/")[1]
+        series_url = API_URL + "/series/" + series_slug + "/" + ep_info["seriesHouseNumber"]
+        info = grab_json(series_url)
+        for ep_info in info["episodes"]:
+            add_episode(self, ep_info)
 
 class IviewFlatNode(Node):
     def __init__(self, title, parent, url):
         Node.__init__(self, title, parent)
         self.url = url
 
-    def add_episode(self, ep_info):
-        video_key = ep_info["episodeHouseNumber"]
-        series_title = ep_info["seriesTitle"]
-        title = ep_info.get("title", None)
-        episode_title = format_episode_title(series_title, title)
-
-        IviewEpisodeNode(episode_title, self, video_key)
-
     def fill_children(self):
         info = grab_json(self.url)
         for ep_info in info:
-            self.add_episode(ep_info)
+            add_episode(self, ep_info)
 
 
 class IviewRootNode(Node):
@@ -118,6 +125,8 @@ class IviewRootNode(Node):
         channel("ABC2", "abc2")
         channel("ABC3", "abc3")
         channel("ABC4Kids", "abc4kids")
+        channel("News", "news")
+        channel("ABC Arts", "abcarts")
         channel("iView Exclusives", "iview")
 
     def load_featured(self):
