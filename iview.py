@@ -29,8 +29,10 @@ class IviewEpisodeNode(Node):
     def find_hls_url(self, playlist):
         for video in playlist:
             if video["type"] == "program":
-                return video["hls-high"].replace("http:", "https:")
-        raise Exception("Missing hls-high program stream for " + self.video_key)
+                for quality in ["hls-plus", "hls-high"]:
+                    if quality in video:
+                        return video[quality].replace("http:", "https:")
+        raise Exception("Missing program stream for " + self.video_key)
 
     def get_auth_details(self):
         with requests_cache.disabled():
