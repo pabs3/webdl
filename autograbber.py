@@ -33,11 +33,11 @@ class DownloadList(object):
             shutil.move(old_filename, HISTORY_FILENAME)
 
     def has_seen(self, node):
-        return node.title in self.seen_list
+        return node.title.strip() in self.seen_list
 
     def mark_seen(self, node):
-        self.seen_list.add(node.title)
-        self.f.write(node.title + "\n")
+        self.seen_list.add(node.title.strip())
+        self.f.write(node.title.strip() + "\n")
         self.f.flush()
 
 
