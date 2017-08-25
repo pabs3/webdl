@@ -174,6 +174,6 @@ class Ch10RootNode(BrightcoveRootNode):
 
 
 def fill_nodes(root_node):
-    Ch9RootNode(root_node)
+    # Ch9RootNode(root_node) -- Need a new API token
     Ch10RootNode(root_node)
 
