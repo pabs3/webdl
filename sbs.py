@@ -24,10 +24,7 @@ class SbsVideoNode(Node):
         player_params = self.get_player_params(doc)
         release_url = player_params["releaseUrls"]["html"]
 
-        with requests_cache.disabled():
-            doc = grab_xml(release_url if not release_url.startswith("//") else "http:" + release_url)
-        video = doc.xpath("//smil:video", namespaces=NS)[0]
-        video_url = video.attrib["src"]
+        video_url = self.get_video_url(release_url)
         if not video_url:
             raise Exception("Unsupported video %s: %s" % (self.video_id, self.title))
         filename = self.title + ".ts"
@@ -46,6 +43,14 @@ class SbsVideoNode(Node):
                         return json.loads(line[p1:p2])
         raise Exception("Unable to find player params for %s: %s" % (self.video_id, self.title))
 
+    def get_video_url(self, release_url):
+        with requests_cache.disabled():
+            doc = grab_xml(release_url if not release_url.startswith("//") else "http:" + release_url)
+            video = doc.xpath("//smil:video", namespaces=NS)
+            if not video:
+                return
+            video_url = video[0].attrib["src"]
+            return video_url
 
 class SbsNavNode(Node):
     def create_video_node(self, entry_data):
