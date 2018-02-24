@@ -5,11 +5,26 @@ WebDL is a set of Python scripts to grab video from online Free To Air Australia
 
 ## News
 
+### 2018-02-24
+
+* Support for Streamlink in addition to Livestreamer.
+* Currently working with iView, SBS and Channel 10.
+
 ### 2017-02-24
 * Now requires Python3, use the `python2` branch if you need the old version.
 * Recommended installation is now with `virtualenv` and `pip` to install dependencies.
 * Removed some custom logic in favour of the `requests` and `requests_cache` libraries.
 * `autograbber.py` can write to multiple directories, previous command line args are still supported.
+
+
+## Updating to the latest version
+
+You must use [git](https://git-scm.com) to keep up to date. The `autograbber-cron.sh` script is how I do this. If you'd like to manually update just run these commands.
+
+```
+cd webdl
+git pull --ff-only
+```
 
 
 ## Installation using pip
@@ -36,6 +51,12 @@ Whenever you want to run WebDL you must source the `.virtualenv/bin/activate` sc
 
 
 ## Installation on Debian/Ubuntu
+
+Clone the WebDL repository:
+```
+git clone https://bitbucket.org/delx/webdl
+cd webdl
+```
 
 Install Python 3 and needed libraries:
 ```
