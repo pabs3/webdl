@@ -42,11 +42,10 @@ Install Python 3 and needed libraries:
 apt-get install python3 python3-lxml python3-requests python3-requests-cache
 ```
 
+You must also install Streamlink, or if it unavailable, the older Livestreamer. Depending on the age of your distro you'll need either:
 
-Install Livestreamer and PyCrypto. Ubuntu packages this as Python 2:
-```
-apt-get install livestreamer python-crypto
-```
+- `apt-get install streamlink`
+- `apt-get install livestreamer python-crypto`
 
 
 Install ffmpeg:

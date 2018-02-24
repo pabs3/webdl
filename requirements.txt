@@ -1,5 +1,4 @@
-livestreamer
-pycrypto
+streamlink
 lxml
 requests
 requests-cache
