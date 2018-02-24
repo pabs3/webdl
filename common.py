@@ -68,8 +68,8 @@ def load_root_node():
     import sbs
     sbs.fill_nodes(root_node)
 
-    import brightcove
-    brightcove.fill_nodes(root_node)
+    import ten
+    ten.fill_nodes(root_node)
 
     return root_node
 
