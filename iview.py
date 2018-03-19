@@ -66,9 +66,10 @@ class IviewIndexNode(Node):
 
     def fill_children(self):
         info = grab_json(self.url)
-        for index_list in info["index"]:
-            for ep_info in index_list["episodes"]:
-                self.add_series(ep_info)
+        for key in ["carousels", "collections", "index"]:
+            for collection_list in info[key]:
+                for ep_info in collection_list["episodes"]:
+                    self.add_series(ep_info)
 
     def add_series(self, ep_info):
         title = ep_info["seriesTitle"]
