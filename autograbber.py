@@ -61,8 +61,10 @@ class DownloadList(object):
 
 
 def match(download_list, node, pattern, count=0):
+    logging.debug("match(%s, %s, %s, %s)", download_list.seen_list, node.title, pattern, count)
     if node.can_download:
         if download_list.wants(node):
+            logging.debug("Attempting download of %s", node.title)
             if node.download():
                 download_list.mark_seen(node)
             else:
@@ -74,7 +76,9 @@ def match(download_list, node, pattern, count=0):
         return
     p = pattern[count]
     for child in node.get_children():
+        logging.debug("Matching '%s' against '%s'", child.title, p)
         if fnmatch.fnmatch(child.title, p):
+            logging.debug("Matched!")
             match(download_list, child, pattern, count+1)
 
 
