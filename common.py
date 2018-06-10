@@ -282,6 +282,25 @@ def download_hls(filename, video_url):
     else:
         return False
 
+def download_mpd(filename, video_url):
+    streamlink = find_streamlink()
+
+    filename = sanify_filename(filename)
+    video_url = "dash://" + video_url
+    logging.info("Downloading: %s", filename)
+
+    cmd = [
+        streamlink,
+        "-f",
+        "-o", filename,
+        video_url,
+        "best",
+    ]
+    if exec_subprocess(cmd):
+        return convert_to_mp4(filename)
+    else:
+        return False
+
 def download_http(filename, video_url):
     filename = sanify_filename(filename)
     logging.info("Downloading: %s", filename)

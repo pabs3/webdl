@@ -1,5 +1,5 @@
 import requests_cache
-from common import grab_html, grab_json, grab_xml, download_hls, Node, append_to_qs
+from common import grab_html, grab_json, grab_xml, download_hls, download_mpd, Node, append_to_qs
 
 import json
 
@@ -24,11 +24,13 @@ class SbsVideoNode(Node):
         player_params = self.get_player_params(doc)
         release_url = player_params["releaseUrls"]["html"]
 
-        video_url = self.get_video_url(release_url)
-        if not video_url:
-            raise Exception("Unsupported video %s: %s" % (self.video_id, self.title))
         filename = self.title + ".ts"
-        return download_hls(filename, video_url)
+
+        hls_url = self.get_hls_url(release_url)
+        if hls_url:
+            return download_hls(filename, hls_url)
+        else:
+            return download_mpd(filename, release_url)
 
     def get_player_params(self, doc):
         for script in doc.xpath("//script"):
@@ -43,7 +45,7 @@ class SbsVideoNode(Node):
                         return json.loads(line[p1:p2])
         raise Exception("Unable to find player params for %s: %s" % (self.video_id, self.title))
 
-    def get_video_url(self, release_url):
+    def get_hls_url(self, release_url):
         with requests_cache.disabled():
             doc = grab_xml("http:" + release_url.replace("http:", "").replace("https:", ""))
             video = doc.xpath("//smil:video", namespaces=NS)
