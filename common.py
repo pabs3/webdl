@@ -180,12 +180,37 @@ def get_duration(filename):
     ]
     output = subprocess.check_output(cmd).decode("utf-8")
     for line in output.split("\n"):
-        if line.startswith("duration="):
-            return float(line.split("=")[1]) # ffprobe
-        if re.match(R'^[0-9.]*$', line):
-            return float(line) # avprobe
+        m = re.search(R"([0-9]+)", line)
+        if not m:
+            continue
+        duration = m.group(1)
+        if duration.isdigit():
+            return int(duration)
 
-    raise Exception("Unable to determine video duration of " + filename)
+
+    logging.debug("Falling back to full decode to find duration: %s % filename")
+
+    ffmpeg = find_ffmpeg()
+    cmd = [
+        ffmpeg,
+        "-i", filename,
+        "-vn",
+        "-f", "null", "-",
+    ]
+    output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8")
+    duration = None
+    for line in re.split(R"[\r\n]", output):
+        m = re.search(R"time=([0-9:]*)\.", line)
+        if not m:
+            continue
+        [h, m, s] = m.group(1).split(":")
+        # ffmpeg prints the duration as it reads the file, we want the last one
+        duration = int(h) * 3600 + int(m) * 60 + int(s)
+
+    if duration:
+        return duration
+    else:
+        raise Exception("Unable to determine video duration of " + filename)
 
 def check_video_durations(flv_filename, mp4_filename):
     flv_duration = get_duration(flv_filename)
