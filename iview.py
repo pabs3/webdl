@@ -117,6 +117,7 @@ class IviewRootNode(Node):
         category("Lifestyle", "lifestyle")
         category("News & Current Affairs", "news")
         category("Panel & Discussion", "panel")
+        category("Regional Australia", "regional")
         category("Sport", "sport")
 
     def load_channels(self):
