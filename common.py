@@ -149,14 +149,14 @@ def check_command_exists(cmd):
         return False
 
 def find_ffmpeg():
-    for ffmpeg in ["avconv", "ffmpeg"]:
+    for ffmpeg in ["ffmpeg", "avconv"]:
         if check_command_exists([ffmpeg, "--help"]):
             return ffmpeg
 
     raise Exception("You must install ffmpeg or libav-tools")
 
 def find_ffprobe():
-    for ffprobe in ["avprobe", "ffprobe"]:
+    for ffprobe in ["ffprobe", "avprobe"]:
         if check_command_exists([ffprobe, "--help"]):
             return ffprobe
 
