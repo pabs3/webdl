@@ -1,6 +1,6 @@
 from common import grab_json, download_hls, Node, append_to_qs
 
-SERIES_LIST_URL = "http://vod.ten.com.au/config/android-v2"
+SERIES_LIST_URL = "https://vod.ten.com.au/config/android-v2"
 SERIES_DETAIL_URL = "https://v.tenplay.com.au/api/videos/bcquery"
 
 class TenVideoNode(Node):

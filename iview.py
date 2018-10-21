@@ -2,8 +2,8 @@ from common import grab_json, grab_xml, Node, download_hls
 import requests_cache
 import urllib.parse
 
-API_URL = "http://iview.abc.net.au/api"
-AUTH_URL = "http://iview.abc.net.au/auth"
+API_URL = "https://iview.abc.net.au/api"
+AUTH_URL = "https://iview.abc.net.au/auth"
 
 def format_episode_title(series, ep):
     if ep:

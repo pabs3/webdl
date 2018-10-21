@@ -3,7 +3,7 @@ from common import grab_html, grab_json, grab_xml, download_hls, download_mpd, N
 
 import json
 
-BASE = "http://www.sbs.com.au"
+BASE = "https://www.sbs.com.au"
 FULL_VIDEO_LIST = BASE + "/api/video_search/v2/?m=1&filters={section}{Programs}"
 VIDEO_URL = BASE + "/ondemand/video/single/%s"
 
@@ -47,7 +47,7 @@ class SbsVideoNode(Node):
 
     def get_hls_url(self, release_url):
         with requests_cache.disabled():
-            doc = grab_xml("http:" + release_url.replace("http:", "").replace("https:", ""))
+            doc = grab_xml("https:" + release_url.replace("http:", "").replace("https:", ""))
             video = doc.xpath("//smil:video", namespaces=NS)
             if not video:
                 return
