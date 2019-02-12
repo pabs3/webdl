@@ -2,6 +2,7 @@ import requests_cache
 from common import grab_html, grab_json, grab_xml, download_hls, download_mpd, Node, append_to_qs
 
 import json
+import sys
 
 BASE = "https://www.sbs.com.au"
 FULL_VIDEO_LIST = BASE + "/api/video_search/v2/?m=1&filters={section}{Programs}"
@@ -76,7 +77,7 @@ class SbsRootNode(SbsNavNode):
 
     def load_all_video_entries(self):
         offset = 1
-        amount = 500
+        amount = 49
         while True:
             url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount)})
             data = grab_json(url)
@@ -88,6 +89,9 @@ class SbsRootNode(SbsNavNode):
             for entry in entries:
                 yield entry
             offset += amount
+            sys.stdout.write(".")
+            sys.stdout.flush()
+        print()
 
     def explode_videos_to_unique_categories(self, all_video_entries):
         for entry_data in all_video_entries:
