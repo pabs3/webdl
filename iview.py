@@ -53,6 +53,8 @@ class IviewEpisodeNode(Node):
 
     def download(self):
         info = grab_json(API_URL + "/programs/" + self.video_key)
+        if "playlist" not in info:
+            return False
         video_url = self.find_hls_url(info["playlist"])
         token, token_hostname= self.get_auth_details()
         video_url = self.add_auth_token_to_url(video_url, token, token_hostname)
