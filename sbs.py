@@ -77,17 +77,20 @@ class SbsRootNode(SbsNavNode):
 
     def load_all_video_entries(self):
         offset = 1
-        amount = 49
+        amount = 50
+        uniq = set()
         while True:
-            url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount)})
+            url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount-1)})
             data = grab_json(url)
             if "entries" not in data:
                 raise Exception("Missing data in SBS response", data)
             entries = data["entries"]
             if len(entries) == 0:
                 break
-            for entry in entries:
-                yield entry
+            for i, entry in enumerate(entries):
+                if entry["guid"] not in uniq:
+                    uniq.add(entry["guid"])
+                    yield entry
             offset += amount
             sys.stdout.write(".")
             sys.stdout.flush()
