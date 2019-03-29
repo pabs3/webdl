@@ -5,7 +5,7 @@ import json
 import sys
 
 BASE = "https://www.sbs.com.au"
-FULL_VIDEO_LIST = BASE + "/api/video_search/v2/?m=1&filters={section}{Programs}"
+FULL_VIDEO_LIST = BASE + "/api/video_feed/f/Bgtm9B/sbs-section-programs/"
 VIDEO_URL = BASE + "/ondemand/video/single/%s"
 
 NS = {
@@ -77,7 +77,7 @@ class SbsRootNode(SbsNavNode):
 
     def load_all_video_entries(self):
         offset = 1
-        amount = 50
+        amount = 1000
         uniq = set()
         while True:
             url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount-1)})
