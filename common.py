@@ -149,23 +149,32 @@ def check_command_exists(cmd):
         return False
 
 def find_ffmpeg():
-    for ffmpeg in ["ffmpeg", "avconv"]:
-        if check_command_exists([ffmpeg, "--help"]):
-            return ffmpeg
+    if check_command_exists(["ffmpeg", "--help"]):
+        return "ffmpeg"
+
+    if check_command_exists(["avconv", "--help"]):
+        logging.warn("Detected libav-tools! ffmpeg is recommended")
+        return "avconv"
 
     raise Exception("You must install ffmpeg or libav-tools")
 
 def find_ffprobe():
-    for ffprobe in ["ffprobe", "avprobe"]:
-        if check_command_exists([ffprobe, "--help"]):
-            return ffprobe
+    if check_command_exists(["ffprobe", "--help"]):
+        return "ffprobe"
+
+    if check_command_exists(["avprobe", "--help"]):
+        logging.warn("Detected libav-tools! ffmpeg is recommended")
+        return "avprobe"
 
     raise Exception("You must install ffmpeg or libav-tools")
 
 def find_streamlink():
-    for streamlink in ["streamlink", "livestreamer"]:
-        if check_command_exists([streamlink, "--help"]):
-            return streamlink
+    if check_command_exists(["streamlink", "--help"]):
+        return "streamlink"
+
+    if check_command_exists(["livestreamer", "--help"]):
+        logging.warn("Detected livestreamer! streamlink is recommended")
+        return "livestreamer"
 
     raise Exception("You must install streamlink or livestreamer")
 
