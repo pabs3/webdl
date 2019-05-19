@@ -69,7 +69,7 @@ class IviewIndexNode(Node):
     def fill_children(self):
         info = grab_json(self.url)
         for key in ["carousels", "collections", "index"]:
-            for collection_list in info[key]:
+            for collection_list in info.get(key, None):
                 if isinstance(collection_list, dict):
                     for ep_info in collection_list.get("episodes", []):
                         self.add_series(ep_info)
