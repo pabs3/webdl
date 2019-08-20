@@ -9,12 +9,25 @@ import sys
 
 HISTORY_FILENAME = ".history.txt"
 PATTERN_FILENAME = ".patterns.txt"
+EXCLUDE_FILENAME = ".excludes.txt"
 
 class DownloadList(object):
     def __init__(self):
+        self.exclude_list = set()
+        self._load_exclude_list()
+
         self.seen_list = set()
         self._load_history_file()
+
         self.f = open(HISTORY_FILENAME, "a")
+
+    def _load_exclude_list(self):
+        try:
+            with open(EXCLUDE_FILENAME, "r") as f:
+                for line in f:
+                    self.exclude_list.add(line.strip())
+        except Exception as e:
+            pass
 
     def _load_history_file(self):
         self._move_old_file("downloaded_auto.txt")
@@ -32,8 +45,14 @@ class DownloadList(object):
             logging.info("Migrating download history from %s to %s", old_filename, HISTORY_FILENAME)
             shutil.move(old_filename, HISTORY_FILENAME)
 
-    def has_seen(self, node):
-        return node.title.strip() in self.seen_list
+    def wants(self, node):
+        title = node.title.strip()
+        if title in self.seen_list:
+            return False
+        for exclude in self.exclude_list:
+            if fnmatch.fnmatch(title, exclude):
+                return False
+        return True
 
     def mark_seen(self, node):
         self.seen_list.add(node.title.strip())
@@ -43,7 +62,7 @@ class DownloadList(object):
 
 def match(download_list, node, pattern, count=0):
     if node.can_download:
-        if not download_list.has_seen(node):
+        if download_list.wants(node):
             if node.download():
                 download_list.mark_seen(node)
             else:

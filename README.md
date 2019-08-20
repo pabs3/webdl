@@ -127,6 +127,13 @@ ABC iView/By Channel/ABC4Kids/*/*
 SBS/Channel/SBS1/Insight*
 ```
 
+You may optionally created a `.excludes.txt` file with shell-style globs. This is matched against the episode title and can be used to filter out things you don't want. For example:
+
+```
+*(Mandarin)*
+*(Chinese)*
+```
+
 Whenever an episode is downloaded it is recorded into `.downloaded_auto.txt`. Even if you move the files somewhere else they will not be redownloaded.
 
 
