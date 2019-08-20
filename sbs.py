@@ -23,8 +23,13 @@ class SbsVideoNode(Node):
         with requests_cache.disabled():
             doc = grab_html(VIDEO_URL % self.video_id)
         player_params = self.get_player_params(doc)
-        release_url = player_params["releaseUrls"]["html"]
 
+        error = player_params.get("error", None)
+        if error:
+            print("Cannot download:", error)
+            return False
+
+        release_url = player_params["releaseUrls"]["html"]
         filename = self.title + ".ts"
 
         hls_url = self.get_hls_url(release_url)
