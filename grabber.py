@@ -11,11 +11,18 @@ def choose(options, allow_multi):
     print("  0) Back")
     while True:
         try:
-            values = list(map(int, input("Choose> ").split()))
-            if len(values) == 0:
+            str_values = input("Choose> ").split()
+            if len(str_values) == 0:
                 continue
-            if 0 in values:
+            if "0" in str_values:
                 return
+            values = []
+            for s in str_values:
+                if s.isdigit():
+                    values.append(int(s))
+                else:
+                    low, high = s.split("-", 1)
+                    values.extend(range(int(low), int(high) + 1))
             values = [reverse_map[value] for value in values if value in reverse_map]
             if allow_multi:
                 return values
