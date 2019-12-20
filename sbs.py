@@ -2,6 +2,7 @@ import requests_cache
 from common import grab_html, grab_json, grab_xml, download_hls, download_mpd, Node, append_to_qs
 
 import json
+import logging
 import sys
 
 BASE = "https://www.sbs.com.au"
@@ -82,24 +83,37 @@ class SbsRootNode(SbsNavNode):
 
     def load_all_video_entries(self):
         offset = 1
-        amount = 1000
-        uniq = set()
+        page_size = 500
+        results = {}
+        duplicate_warning = False
+
         while True:
-            url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+amount-1)})
-            data = grab_json(url)
-            if "entries" not in data:
-                raise Exception("Missing data in SBS response", data)
-            entries = data["entries"]
+            entries = self.fetch_entries_page(offset, page_size)
             if len(entries) == 0:
                 break
-            for i, entry in enumerate(entries):
-                if entry["guid"] not in uniq:
-                    uniq.add(entry["guid"])
-                    yield entry
-            offset += amount
+
+            for entry in entries:
+                guid = entry["guid"]
+                if guid in results and not duplicate_warning:
+                    # https://bitbucket.org/delx/webdl/issues/102/recent-sbs-series-missing
+                    logging.warn("SBS returned a duplicate response, data is probably missing. Try decreasing page_size.")
+                    duplicate_warning = True
+
+                results[guid] = entry
+
+            offset += page_size
             sys.stdout.write(".")
             sys.stdout.flush()
+
         print()
+        return list(results.values())
+
+    def fetch_entries_page(self, offset, page_size):
+        url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+page_size-1)})
+        data = grab_json(url)
+        if "entries" not in data:
+            raise Exception("Missing data in SBS response", data)
+        return data["entries"]
 
     def explode_videos_to_unique_categories(self, all_video_entries):
         for entry_data in all_video_entries:
