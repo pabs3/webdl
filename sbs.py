@@ -101,7 +101,7 @@ class SbsRootNode(SbsNavNode):
 
     def load_all_video_entries_for_channel(self, all_entries, channel):
         offset = 1
-        page_size = 500
+        page_size = 100
         duplicate_warning = False
 
         while True:
