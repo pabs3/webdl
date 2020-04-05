@@ -89,7 +89,7 @@ class IviewSeriesNode(Node):
         series_slug = ep_info["href"].split("/")[1]
         series_url = API_URL + "/series/" + series_slug + "/" + ep_info["seriesHouseNumber"]
         info = grab_json(series_url)
-        for ep_info in info.get("episodes", []):
+        for ep_info in reversed(info.get("episodes", [])):
             add_episode(self, ep_info)
 
 class IviewFlatNode(Node):
