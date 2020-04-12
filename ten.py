@@ -1,6 +1,6 @@
 from common import grab_json, download_hls, Node, append_to_qs
 
-SERIES_LIST_URL = "https://vod.ten.com.au/config/android-v2"
+SERIES_LIST_URL = "https://vod.ten.com.au/config/android-v4"
 SERIES_DETAIL_URL = "https://v.tenplay.com.au/api/videos/bcquery"
 
 class TenVideoNode(Node):
@@ -22,17 +22,9 @@ class TenSeriesNode(Node):
         self.video_ids = set()
 
     def fill_children(self):
-        self.fill_children_with_query(self.query)
-
-        if "&none" not in self.query:
-            # Some videos are not categorised correctly, so try looking up by the cleanname as well.
-            # Only do this if they haven't tried to filter out similarly named shows.
-            self.fill_children_with_query("&all=tv_show_group:" + self.clean_name)
-
-    def fill_children_with_query(self, query):
         page_number = 0
         while page_number < 100:
-            url = self.get_page_url(query, page_number)
+            url = self.get_page_url(self.query, page_number)
             page_number += 1
 
             page = grab_json(url)
@@ -68,7 +60,7 @@ class TenRootNode(Node):
 
         for series in doc["Browse TV"]["Shows"]:
             title = series["title"]
-            query = series["query"]
+            query = series["query"] + series["episodefilter"]
             clean_name = series["cleanname"]
 
             TenSeriesNode(title, self, query, clean_name)
