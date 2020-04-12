@@ -50,7 +50,7 @@ class Node(object):
     def get_children(self):
         if not self.children:
             self.fill_children()
-            self.children.sort(key=lambda node: node.title)
+            self.children = natural_sort(self.children, key=lambda node: node.title)
         return self.children
 
     def fill_children(self):
