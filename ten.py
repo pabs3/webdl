@@ -1,3 +1,4 @@
+import logging
 from common import grab_json, download_hls, Node, append_to_qs
 
 SERIES_LIST_URL = "https://vod.ten.com.au/config/android-v4"
@@ -14,11 +15,11 @@ class TenVideoNode(Node):
         return download_hls(filename, self.video_url)
 
 class TenSeriesNode(Node):
-    def __init__(self, title, parent, query, clean_name):
+    def __init__(self, title, parent, query, expected_tv_show):
         Node.__init__(self, title, parent)
         self.title = title
         self.query = query
-        self.clean_name = clean_name
+        self.expected_tv_show = expected_tv_show
         self.video_ids = set()
 
     def fill_children(self):
@@ -38,7 +39,6 @@ class TenSeriesNode(Node):
     def get_page_url(self, query, page_number):
         return append_to_qs(SERIES_DETAIL_URL, {
             "command": "search_videos",
-            "all": "video_type_long_form:Full+Episode",
             "page_size": "30",
             "page_number": str(page_number),
         }) + query
@@ -46,9 +46,13 @@ class TenSeriesNode(Node):
     def process_video(self, video_desc):
         video_id = video_desc["id"]
         video_url = video_desc["HLSURL"]
+        tv_show = video_desc["customFields"]["tv_show"]
         title = video_desc["name"]
 
         if video_id in self.video_ids:
+            return
+        if tv_show != self.expected_tv_show:
+            logging.warn("Skipping unexpected video: %s != %s", tv_show, self.expected_tv_show)
             return
         self.video_ids.add(video_id)
 
@@ -61,9 +65,9 @@ class TenRootNode(Node):
         for series in doc["Browse TV"]["Shows"]:
             title = series["title"]
             query = series["query"] + series["episodefilter"]
-            clean_name = series["cleanname"]
+            expected_tv_show = series["tv_show"]
 
-            TenSeriesNode(title, self, query, clean_name)
+            TenSeriesNode(title, self, query, expected_tv_show)
 
 def fill_nodes(root_node):
     TenRootNode("Ten", root_node)
