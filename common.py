@@ -14,6 +14,7 @@ import subprocess
 import time
 import urllib.parse
 
+USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:74.0) Gecko/20100101 Firefox/74.0"
 
 try:
     import autosocks
@@ -89,7 +90,7 @@ def ensure_scheme(url):
     return urllib.parse.urlunparse(parts)
 
 http_session = requests.Session()
-http_session.headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.6; rv:21.0) Gecko/20100101 Firefox/21.0"
+http_session.headers["User-Agent"] = USER_AGENT
 
 def grab_text(url):
     logging.debug("grab_text(%r)", url)
@@ -293,6 +294,7 @@ def download_hls(filename, video_url):
 
     cmd = [
         "streamlink",
+        "--http-header", "User-Agent=" + USER_AGENT,
         "--force",
         "--output", filename,
         video_url,
