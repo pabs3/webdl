@@ -169,16 +169,6 @@ def find_ffprobe():
 
     raise Exception("You must install ffmpeg or libav-tools")
 
-def find_streamlink():
-    if check_command_exists(["streamlink", "--help"]):
-        return "streamlink"
-
-    if check_command_exists(["livestreamer", "--help"]):
-        logging.warn("Detected livestreamer! streamlink is recommended")
-        return "livestreamer"
-
-    raise Exception("You must install streamlink or livestreamer")
-
 def get_duration(filename):
     ffprobe = find_ffprobe()
 
@@ -275,8 +265,6 @@ def convert_to_mp4(filename):
 
 
 def download_hds(filename, video_url, pvswf=None):
-    streamlink = find_streamlink()
-
     filename = sanify_filename(filename)
     logging.info("Downloading: %s", filename)
 
@@ -287,9 +275,9 @@ def download_hds(filename, video_url, pvswf=None):
         param = video_url
 
     cmd = [
-        streamlink,
-        "-f",
-        "-o", filename,
+        "streamlink",
+        "--force",
+        "--output", filename,
         param,
         "best",
     ]
@@ -299,16 +287,14 @@ def download_hds(filename, video_url, pvswf=None):
         return False
 
 def download_hls(filename, video_url):
-    streamlink = find_streamlink()
-
     filename = sanify_filename(filename)
     video_url = "hlsvariant://" + video_url
     logging.info("Downloading: %s", filename)
 
     cmd = [
-        streamlink,
-        "-f",
-        "-o", filename,
+        "streamlink",
+        "--force",
+        "--output", filename,
         video_url,
         "best",
     ]
@@ -318,16 +304,14 @@ def download_hls(filename, video_url):
         return False
 
 def download_mpd(filename, video_url):
-    streamlink = find_streamlink()
-
     filename = sanify_filename(filename)
     video_url = "dash://" + video_url
     logging.info("Downloading: %s", filename)
 
     cmd = [
-        streamlink,
-        "-f",
-        "-o", filename,
+        "streamlink",
+        "--force",
+        "--output", filename,
         video_url,
         "best",
     ]
