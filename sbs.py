@@ -82,34 +82,51 @@ class SbsRootNode(SbsNavNode):
             nav_node.create_video_node(entry_data)
 
     def load_all_video_entries(self):
+        channels = [
+            "Channel/SBS1",
+            "Channel/SBS Food",
+            "Channel/SBS VICELAND",
+            "Channel/SBS World Movies",
+            "Channel/Web Exclusive",
+        ]
+
+        all_entries = {}
+        for channel in channels:
+            self.load_all_video_entries_for_channel(all_entries, channel)
+
+        all_entries = list(all_entries.values())
+        print(" SBS fetched", len(all_entries))
+        return all_entries
+
+    def load_all_video_entries_for_channel(self, all_entries, channel):
         offset = 1
         page_size = 500
-        results = {}
         duplicate_warning = False
 
         while True:
-            entries = self.fetch_entries_page(offset, page_size)
+            entries = self.fetch_entries_page(channel, offset, page_size)
             if len(entries) == 0:
                 break
 
             for entry in entries:
                 guid = entry["guid"]
-                if guid in results and not duplicate_warning:
+                if guid in entries and not duplicate_warning:
                     # https://bitbucket.org/delx/webdl/issues/102/recent-sbs-series-missing
                     logging.warn("SBS returned a duplicate response, data is probably missing. Try decreasing page_size.")
                     duplicate_warning = True
 
-                results[guid] = entry
+                all_entries[guid] = entry
 
             offset += page_size
-            sys.stdout.write(".")
-            sys.stdout.flush()
+            if os.isatty(sys.stdout.fileno()):
+                sys.stdout.write(".")
+                sys.stdout.flush()
 
-        print()
-        return list(results.values())
-
-    def fetch_entries_page(self, offset, page_size):
-        url = append_to_qs(FULL_VIDEO_LIST, {"range": "%s-%s" % (offset, offset+page_size-1)})
+    def fetch_entries_page(self, channel, offset, page_size):
+        url = append_to_qs(FULL_VIDEO_LIST, {
+            "range": "%s-%s" % (offset, offset+page_size-1),
+            "byCategories": channel,
+        })
         data = grab_json(url)
         if "entries" not in data:
             raise Exception("Missing data in SBS response", data)
