@@ -11,6 +11,7 @@ import requests_cache
 import shutil
 import signal
 import subprocess
+import sys
 import time
 import urllib.parse
 
@@ -26,6 +27,7 @@ except ImportError:
 logging.basicConfig(
     format = "%(levelname)s %(message)s",
     level = logging.INFO if os.environ.get("DEBUG", None) is None else logging.DEBUG,
+    stream = sys.stdout,
 )
 
 CACHE_FILE = os.path.join(
