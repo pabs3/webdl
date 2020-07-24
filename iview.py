@@ -1,5 +1,6 @@
 from common import grab_json, grab_xml, Node, download_hls
 import requests_cache
+import string
 import urllib.parse
 
 API_URL = "https://iview.abc.net.au/api"
@@ -109,32 +110,38 @@ class IviewFlatNode(Node):
 class IviewRootNode(Node):
     def load_categories(self):
         by_category_node = Node("By Category", self)
-        def category(name, slug):
-            IviewIndexNode(name, by_category_node, API_URL + "/category/" + slug)
 
-        category("Arts & Culture", "arts")
-        category("Comedy", "comedy")
-        category("Documentary", "docs")
-        category("Drama", "drama")
-        category("Education", "education")
-        category("Lifestyle", "lifestyle")
-        category("News & Current Affairs", "news")
-        category("Panel & Discussion", "panel")
-        category("Regional Australia", "regional")
-        category("Sport", "sport")
+        data = grab_json(API_URL + "/categories")
+        categories = data["categories"]
+
+        for category_data in categories:
+            category_title = category_data["title"]
+            category_title = string.capwords(category_title)
+
+            category_href = category_data["href"]
+
+            IviewIndexNode(category_title, by_category_node, API_URL + "/" + category_href)
 
     def load_channels(self):
         by_channel_node = Node("By Channel", self)
-        def channel(name, slug):
-            IviewIndexNode(name, by_channel_node, API_URL + "/channel/" + slug)
 
-        channel("ABC1", "abc1")
-        channel("ABC2", "abc2")
-        channel("ABC3", "abc3")
-        channel("ABC4Kids", "abc4kids")
-        channel("News", "news")
-        channel("ABC Arts", "abcarts")
-        channel("iView Exclusives", "iview")
+        data = grab_json(API_URL + "/channel")
+        channels = data["channels"]
+
+        for channel_data in channels:
+            channel_id = channel_data["categoryID"]
+            channel_title = {
+                "abc1": "ABC1",
+                "abc2": "ABC2",
+                "abc3": "ABC3",
+                "abc4kids": "ABC4Kids",
+                "news": "News",
+                "abcarts": "ABC Arts",
+            }.get(channel_id, channel_data["title"])
+
+            channel_href = channel_data["href"]
+
+            IviewIndexNode(channel_title, by_channel_node, API_URL + "/" + channel_href)
 
     def load_featured(self):
         IviewFlatNode("Featured", self, API_URL + "/featured")
