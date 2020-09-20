@@ -1,10 +1,13 @@
-from common import grab_json, grab_xml, Node, download_hls
+from common import append_to_qs, grab_json, grab_text, Node, download_hls
+import hashlib
+import hmac
 import requests_cache
 import string
+import time
 import urllib.parse
 
+BASE_URL = "https://iview.abc.net.au"
 API_URL = "https://iview.abc.net.au/api"
-AUTH_URL = "https://iview.abc.net.au/auth"
 
 def format_episode_title(series, ep):
     if ep:
@@ -30,36 +33,29 @@ class IviewEpisodeNode(Node):
     def find_hls_url(self, playlist):
         for video in playlist:
             if video["type"] == "program":
-                for quality in ["hls-plus", "hls-high"]:
-                    if quality in video:
-                        return video[quality].replace("http:", "https:")
-        raise Exception("Missing program stream for " + self.video_key)
+                streams = video["streams"]["hls"]
+                for quality in ["720", "sd", "sd-low"]:
+                    if quality in streams:
+                        return streams[quality]
+        raise Exception("Missing program stream for " + self.video_key + " -- " + self.title)
 
-    def get_auth_details(self):
+    def get_auth_token(self):
+        path = "/auth/hls/sign?ts=%s&hn=%s&d=android-tablet" % (int(time.time()), self.video_key)
+        sig = hmac.new(b'android.content.res.Resources', path.encode("utf-8"), hashlib.sha256).hexdigest()
+        auth_url = BASE_URL + path + "&sig=" + sig
         with requests_cache.disabled():
-            auth_doc = grab_xml(AUTH_URL)
-        NS = {
-            "auth": "http://www.abc.net.au/iView/Services/iViewHandshaker",
-        }
-        token = auth_doc.xpath("//auth:tokenhd/text()", namespaces=NS)[0]
-        token_url = auth_doc.xpath("//auth:server/text()", namespaces=NS)[0]
-        token_hostname = urllib.parse.urlparse(token_url).netloc
-        return token, token_hostname
-
-    def add_auth_token_to_url(self, video_url, token, token_hostname):
-        parsed_url = urllib.parse.urlparse(video_url)
-        hacked_url = parsed_url._replace(netloc=token_hostname, query="hdnea=" + token)
-        video_url = urllib.parse.urlunparse(hacked_url)
-        return video_url
+            auth_token = grab_text(auth_url)
+        return auth_token
 
     def download(self):
         info = grab_json(API_URL + "/programs/" + self.video_key)
         if "playlist" not in info:
             return False
         video_url = self.find_hls_url(info["playlist"])
-        token, token_hostname= self.get_auth_details()
-        video_url = self.add_auth_token_to_url(video_url, token, token_hostname)
+        auth_token = self.get_auth_token()
+        video_url = append_to_qs(video_url, {"hdnea": auth_token})
         return download_hls(self.filename, video_url)
+
 
 class IviewIndexNode(Node):
     def __init__(self, title, parent, url):
